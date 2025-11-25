@@ -63,3 +63,13 @@ Fortschritt: 100% (42/42 Aufgaben erledigt)
 - [x] Automatische Tests für Zufallsauswahl, Import/Export und Validierung ergänzt.
 - [x] Scrollbare Text-, Listen- und Tabellenbereiche für volle Sichtbarkeit ergänzt.
 - [x] Invertiertes Hochkontrast-Theme samt Validierungen und Best-Practice-Tests hinterlegt.
+Fortschritt: 0% (0/9 neue Aufgaben geplant)
+- [ ] Kontrast-Wächter einbauen: Themes beim Wechsel auf Mindestkontrast prüfen und bei schwachem Wert automatisch auf ein sicheres Theme umschalten.
+- [ ] Start/Monitor entkoppeln: Hintergrund-Monitor stoppbar machen und Startroutine in einen eigenen Service auslagern.
+- [ ] Plugin-Schema prüfen: Erwartete Hooks validieren, ungültige Plugins blocken und Status klar loggen.
+- [ ] Manifest versionieren und im UI anzeigen, damit Nutzer den Stand der Layout-/Strukturdatei sehen.
+- [ ] Log-Level-Umschalter ergänzen (Info/Warnung/Fehler) und Debug-Ansicht filtern.
+- [ ] Headless UI-Screenshot-Test in die Test-Suite aufnehmen, um Layoutänderungen früh zu erkennen.
+- [ ] Drag-Handles der Paned-Fenster auf Tastaturbedienung testen und Shortcut-Legende dokumentieren.
+- [ ] Querverbindungs-Validator erweitern: Genre-Profil-Verlinkungen in To-dos/Snippets automatisch markieren.
+- [ ] Invertierten Textmodus im Dashboard mit Kurzhilfe (Tooltip + Statushinweis) ergänzen und automatisch rücksetzen, wenn das Feld verliert.

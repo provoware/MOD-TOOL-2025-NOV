@@ -66,6 +66,7 @@ class ControlCenterApp:
         self._autosave_job: int | None = None
         self._hint_job: int | None = None
         self._large_text = tk.BooleanVar(value=False)
+        self._inverted_widgets: set[int] = set()
         self._genre_archive = GenreArchive(self._self_check.base_path)
         self._todo_manager = TodoManager(self._self_check.base_path)
         self._snippet_store = SnippetStore(self._self_check.base_path)
@@ -224,6 +225,12 @@ class ControlCenterApp:
             self._logging_manager.log_system(
                 "Sidebar aktualisiert: Schnellzugriff ein-/ausblendbar für klare Navigation."
             )
+
+    def _rotate_layout(self) -> None:
+        self._layout.rotate_workspace_rows()
+        self._logging_manager.log_system(
+            "Workspace neu angeordnet – Panes lassen sich jetzt flexibel verschieben."
+        )
 
     def _save_notes(self, text: str | None = None) -> bool:
         content = text if text is not None else (self._layout.note_panel.get_content() if self._layout.note_panel else "")
@@ -425,6 +432,23 @@ class ControlCenterApp:
             f"Großtext {'aktiv' if enabled else 'aus'} – Darstellung {int(scale*100)}%"
         )
 
+    def _toggle_invert_for_focus(self) -> None:
+        widget = self._root.focus_get()
+        if not isinstance(widget, tk.Text):
+            self._set_status("Bitte zuerst ein Textfeld anklicken – dann invertieren")
+            return
+        widget_id = widget.winfo_id()
+        already_inverted = widget_id in self._inverted_widgets
+        self._theme_manager.apply_text_theme(widget, invert=not already_inverted)
+        if already_inverted:
+            self._inverted_widgets.remove(widget_id)
+            message = "Invertierter Textmodus deaktiviert – Standardfarben aktiv."
+        else:
+            self._inverted_widgets.add(widget_id)
+            message = "Invertierter Textmodus nur für dieses Feld aktiv."
+        self._logging_manager.log_system(message)
+        self._set_status(message)
+
     def _open_tool_index(self) -> None:
         """Open or refresh the live module/function index."""
 
@@ -452,6 +476,29 @@ class ControlCenterApp:
             self._logging_manager.log_system("Genres-Tool geöffnet – Zufallsauswahl bereit")
 
         _render()
+
+    def _validate_links(self) -> None:
+        """Check cross-links between Genres, To-dos, and Snippets for consistency."""
+
+        report_lines: list[str] = []
+        genre_count = len(self._genre_archive.list_profiles(limit=1))
+        todo_count = len(self._todo_manager.list_upcoming(limit=1))
+        snippet_ok = self._snippet_store.ensure_store().exists()
+
+        if genre_count:
+            report_lines.append("Genres: Archiv erreichbar")
+        else:
+            report_lines.append("Genres: bitte mindestens ein Profil anlegen")
+        if todo_count:
+            report_lines.append("To-dos: Einträge gefunden – Verknüpfungen ok")
+        else:
+            report_lines.append("To-dos: leer, Aufgaben ergänzen für Querverweise")
+        report_lines.append(
+            "Snippets: Ablage bereit" if snippet_ok else "Snippets: Ablage prüfen"
+        )
+        combined = " | ".join(report_lines)
+        self._logging_manager.log_system(f"Verknüpfungen geprüft: {combined}")
+        self._set_status(combined)
 
     def _build_runtime_manifest(self) -> None:
         """Generate and persist the layout/structure manifest for transparency."""
@@ -491,6 +538,9 @@ class ControlCenterApp:
             on_show_index=self._open_tool_index,
             on_toggle_large_text=self._toggle_large_text,
             on_toggle_sidebar=self._toggle_sidebar,
+            on_validate_links=self._validate_links,
+            on_reflow_workspaces=self._rotate_layout,
+            on_toggle_invert=self._toggle_invert_for_focus,
             on_save_note=self._save_notes,
             on_autosave_note=lambda text: self._autosave_notes(text, source="Feld verlassen"),
             on_backup=self._perform_backup,

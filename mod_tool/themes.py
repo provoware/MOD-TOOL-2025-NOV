@@ -172,15 +172,22 @@ class ThemeManager:
         background = palette["background"]
         return (accent, background) if ok else ("#c0392b", background)
 
-    def apply_text_theme(self, widget: tk.Widget) -> None:
-        """Apply readable text settings to plain Tk widgets."""
+    def apply_text_theme(self, widget: tk.Widget, invert: bool | None = None) -> None:
+        """Apply readable text settings to plain Tk widgets.
+
+        The optional ``invert`` flag allows callers to invert only the active
+        text field without switching the full dashboard theme. If ``invert`` is
+        omitted, the current theme preference is respected.
+        """
 
         if not isinstance(widget, tk.Text):
             raise TypeError("apply_text_theme erwartet ein tk.Text-Widget")
         palette = self.palette
-        invert = self.invert_text or bool(palette.get("invert_text", False))
-        fg = palette["background"] if invert else palette["foreground"]
-        bg = palette["foreground"] if invert else palette["background"]
+        invert_flag = self.invert_text or bool(palette.get("invert_text", False))
+        if invert is not None:
+            invert_flag = bool(invert)
+        fg = palette["background"] if invert_flag else palette["foreground"]
+        bg = palette["foreground"] if invert_flag else palette["background"]
         widget.configure(
             font=self.fonts["text"],
             foreground=fg,
