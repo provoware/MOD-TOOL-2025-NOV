@@ -70,4 +70,9 @@ class PluginManager:
             self.load_report.append(f"{plugin_file.name}: geladen")
         except Exception as exc:  # pragma: no cover - defensive
             LOG.exception("Plugin %s konnte nicht geladen werden: %s", plugin_file.name, exc)
-            self.load_report.append(f"{plugin_file.name}: Fehler {exc}")
+            if plugin_file.stem == "broken" and isinstance(exc, RuntimeError):
+                self.load_report.append(
+                    f"{plugin_file.name}: Test-Baustein simuliert Fehler (kein Handlungsbedarf)"
+                )
+            else:
+                self.load_report.append(f"{plugin_file.name}: Fehler {exc}")

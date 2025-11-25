@@ -171,6 +171,13 @@ class ControlCenterApp:
             tests_detail = repairs.get("tests_info")
             if tests_detail:
                 self._logging_manager.log_system(f"Testdetails: {tests_detail}")
+            overall = repairs.get("gesamt", "warnung")
+            status_text = {
+                "ok": "Alles ok – Start frei",
+                "warnung": "Hinweise prüfen – nichts blockiert",
+                "fehler": "Bitte prüfen – kritischer Fehler",
+            }.get(overall, "Hinweise prüfen")
+            self._layout.set_status_light(overall, status_text)
             progress, note = self._calculate_progress(repairs)
             self._layout.header_controls.set_progress(progress, note)
             self._log_guidance_notes()

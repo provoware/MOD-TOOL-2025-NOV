@@ -1,6 +1,6 @@
 # MOD Tool Aufgabenliste
-Fortschritt: 100% (25/25 Aufgaben erledigt)
-Fortschritt: 100% (22/22 Aufgaben erledigt)
+Fortschritt: 100% (29/29 Aufgaben erledigt)
+Fortschritt: 100% (29/29 Aufgaben erledigt)
 - [x] GUI-Grundgerüst mit Header, 4-Panels und dreigeteilter Fußleiste erstellen.
 - [x] Live-Logging mit Debug-Bereich und klaren Ereignismeldungen einbinden.
 - [x] Automatische Selbstprüfung (Ordner prüfen/erstellen, Syntax-Check) integrieren.
@@ -26,3 +26,7 @@ Fortschritt: 100% (22/22 Aufgaben erledigt)
 - [x] Import/Export, Hinweis-Editor und farbcodierte Statusanzeigen für Laien erweitert.
 - [x] Timeout-geschützte Testausführung mit klarer Log-Meldung integriert.
 - [x] Testdetails aus der Startroutine im Log sichtbar gemacht.
+- [x] DashboardLayout mit Standard-Status (State) für Tests und Barrierefreiheit abgesichert.
+- [x] Barrierearmes Raster mit Mindestgrößen für Header, Footer und Sidebar definiert.
+- [x] Neon-Theme mit kontraststarker Akzentfarbe und farbbänder ohne negative Abstände ergänzt.
+- [x] Build-Defaults mit sicheren Rückfall-Callbacks für Startroutine, Warn-/Fehler-Ampel und Tests hinterlegt.
