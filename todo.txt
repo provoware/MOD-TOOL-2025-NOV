@@ -1,6 +1,8 @@
 # MOD Tool Aufgabenliste
 Fortschritt: 100% (29/29 Aufgaben erledigt)
 Fortschritt: 100% (29/29 Aufgaben erledigt)
+Fortschritt: 100% (26/26 Aufgaben erledigt)
+Fortschritt: 100% (23/23 Aufgaben erledigt)
 - [x] GUI-Grundgerüst mit Header, 4-Panels und dreigeteilter Fußleiste erstellen.
 - [x] Live-Logging mit Debug-Bereich und klaren Ereignismeldungen einbinden.
 - [x] Automatische Selbstprüfung (Ordner prüfen/erstellen, Syntax-Check) integrieren.
