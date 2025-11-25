@@ -59,6 +59,26 @@ class ThemeAccessibilityTests(unittest.TestCase):
         self.assertEqual(text_widget.cget("foreground"), manager.palette["foreground"])
         root.destroy()
 
+    def test_aurora_theme_exposes_card_palette(self):
+        try:
+            root = tk.Tk()
+            root.withdraw()
+        except tk.TclError:
+            self.skipTest("Tk nicht verfügbar")
+        manager = ThemeManager(root)
+        manager.apply_theme("Aurora")
+        palette = manager.module_palette
+        self.assertGreaterEqual(len(palette), 4)
+        for primary, secondary in palette:
+            self.assertTrue(primary.startswith("#"))
+            self.assertTrue(secondary.startswith("#"))
+            self.assertGreater(
+                ThemeManager._contrast_ratio(primary, secondary),
+                1.1,
+                msg="Palettenfarben sollen sich voneinander abheben",
+            )
+        root.destroy()
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

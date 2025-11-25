@@ -202,12 +202,13 @@ class SnippetLibraryPanel(ttk.LabelFrame):
         store: SnippetStore,
         theme_manager: ThemeManager,
         logging_manager,
+        frame_style: str = "Note.TLabelframe",
     ) -> None:
         super().__init__(
             parent,
             text="Snippet-Bibliothek (Vorlagen & Textbausteine)",
             padding=10,
-            style="Note.TLabelframe",
+            style=frame_style,
         )
         self.store = store
         self.theme_manager = theme_manager

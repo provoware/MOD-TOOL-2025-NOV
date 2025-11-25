@@ -560,7 +560,7 @@ class ControlCenterApp:
         self._init_menu()
         self._attach_validated_inputs()
         self._zoom_manager.bind_shortcuts(status_callback=self._set_status)
-        self._theme_manager.apply_theme("Hell")
+        self._theme_manager.apply_theme("Aurora")
         self._logging_manager.start_logging()
         self._logging_manager.log_system("Klick&Start-Routine bereit – alles automatisiert")
         self._set_status("Zoom bereit: Strg + Mausrad verändert Schriftgrößen barrierefrei.")
