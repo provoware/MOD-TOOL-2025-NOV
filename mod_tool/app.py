@@ -98,6 +98,8 @@ class ControlCenterApp:
             self._layout.header_controls.stat_var.set(
                 f"Status {source}: Pfade ok, Syntax ok, Tests {tests_label}"
             )
+            progress, note = self._calculate_progress(repairs)
+            self._layout.header_controls.set_progress(progress, note)
 
         try:
             _diagnose()
@@ -160,6 +162,16 @@ class ControlCenterApp:
         writer = ManifestWriter(self._manifest_path)
         manifest_path = writer.write(manifest)
         self._logging_manager.log_system(f"Manifest aktualisiert: {manifest_path}")
+
+    def _calculate_progress(self, status: dict[str, str]) -> tuple[int, str]:
+        ok_states = {"ok", "vorhanden", "automatisch erstellt", "übersprungen", "erstellt"}
+        items = [(k, v) for k, v in status.items() if not k.endswith("_info")]
+        if not items:
+            return 0, "Keine Checks gefunden"
+        good = sum(1 for _, value in items if value in ok_states or value.startswith("ok"))
+        percent = int((good / len(items)) * 100)
+        label = f"Checks: {good}/{len(items)} gesund – {percent}%" if items else "Keine Checks"
+        return percent, label
 
     def run(self) -> None:
         self._layout.build(
