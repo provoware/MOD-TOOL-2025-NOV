@@ -39,6 +39,11 @@ Fortschritt: 100% (23/23 Aufgaben erledigt)
 - [x] Selbstprüfung meldet Klartext-Status (OK/Warnung/Fehler) statt technischer Details.
 - [x] Neon-Theme und Modul-Farbbänder für klare visuelle Orientierung ergänzt.
 - [x] Build-Defaults mit sicheren Rückfall-Callbacks für Startroutine und Tests hinterlegt.
+- [x] Schriftgrößen und Farbkontraste nach WCAG überprüft und laienfreundlich hervorgehoben.
+- [x] Zusätzliche kontrastreiche Themes und Statusanzeige für Barrierefreiheit ergänzt.
+- [x] Genre-Archiv mit Duplikatprüfung und automatischer Archivdatei ergänzt.
+- [x] Dashboard-To-do-Liste (Top 10) mit Datum, Infotext und Erledigt-Status eingebaut.
+- [x] Logging-Panel ohne Neben-Threads aktualisiert, damit UI sauber schließt.
 - [x] Pane-Akzentbänder ohne negative Abstände neu ausgerichtet und valider Padding-Check ergänzt.
 - [x] Neon-Themes kontrastoptimiert und automatische Kontrastprüfung auf 4.5:1 gehoben.
 - [x] Schriftgrößen und Farbkontraste nach WCAG überprüft und laienfreundlich hervorgehoben.

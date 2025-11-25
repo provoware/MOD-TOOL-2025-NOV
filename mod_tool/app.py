@@ -18,6 +18,7 @@ from tkinter import filedialog, messagebox, ttk
 from .bootstrap import Bootstrapper
 from .dashboard_state import DashboardState
 from .diagnostics import guarded_action
+from .genre_archive import GenreArchive
 from .guidance import StartupGuide
 from .layout import DashboardLayout
 from .manifest import (
@@ -29,6 +30,7 @@ from .logging_dashboard import LoggingManager
 from .plugins import PluginManager
 from .self_check import SelfCheck
 from .themes import ThemeManager
+from .todo import TodoManager
 from .tool_index import ToolIndex, ToolIndexView
 from .zoom import ZoomManager
 
@@ -62,6 +64,8 @@ class ControlCenterApp:
         self._autosave_job: int | None = None
         self._hint_job: int | None = None
         self._large_text = tk.BooleanVar(value=False)
+        self._genre_archive = GenreArchive(self._self_check.base_path)
+        self._todo_manager = TodoManager(self._self_check.base_path)
 
         self._layout = DashboardLayout(
             self._root,
@@ -155,6 +159,10 @@ class ControlCenterApp:
             self._logging_manager.log_system(f"Pfad- & Syntaxprüfung: {repairs}")
             for line in friendly_lines:
                 self._logging_manager.log_system(f"Kurzfassung: {line}")
+            archive_path = self._genre_archive.ensure_archive()
+            todo_path = self._todo_manager.ensure_store()
+            self._logging_manager.log_system(f"Genre-Archiv bereitgestellt: {archive_path}")
+            self._logging_manager.log_system(f"To-do-Ablage geprüft: {todo_path}")
             loaded = self._plugin_manager.load_plugins()
             self._logging_manager.log_system(
                 f"Plugins geladen ({len(loaded)}): {', '.join(loaded) if loaded else 'keine Module gefunden'}"
@@ -246,6 +254,46 @@ class ControlCenterApp:
         self._logging_manager.log_system(f"Backup abgelegt unter: {backup_path}")
         messagebox.showinfo("Backup", f"Backup erstellt: {backup_path}")
 
+    def _add_todo(self, title: str, due_date: str | None, info: str, done: bool) -> bool:
+        try:
+            item = self._todo_manager.add_item(title=title, due_date=due_date, info=info, done=done)
+        except ValueError as exc:
+            self._set_status(str(exc))
+            return False
+        self._logging_manager.log_system(
+            f"To-do gesichert: {item.title} (Fällig: {item.due_date or 'offen'}, Status: {'done' if item.done else 'offen'})"
+        )
+        self._layout.refresh_todos()
+        return True
+
+    def _toggle_todo_done(self, item_id: str, done: bool) -> None:
+        try:
+            item = self._todo_manager.set_done(item_id, done)
+        except ValueError as exc:
+            self._set_status(str(exc))
+            return
+        label = "erledigt" if item.done else "offen"
+        self._logging_manager.log_system(f"To-do Status geändert: {item.title} -> {label}")
+        self._layout.refresh_todos()
+
+    def _todo_preview(self) -> list:
+        return self._todo_manager.list_upcoming(limit=10)
+
+    def _add_genre_profile(self, category: str, name: str, description: str) -> bool:
+        try:
+            profile = self._genre_archive.add_profile(category=category, name=name, description=description)
+        except ValueError as exc:
+            self._set_status(str(exc))
+            return False
+        self._logging_manager.log_system(
+            f"Genre-Profil gespeichert: {profile.category}/{profile.name} – {profile.description or 'ohne Beschreibung'}"
+        )
+        self._layout.refresh_genres()
+        return True
+
+    def _genre_summary(self) -> list[str]:
+        return self._genre_archive.summary_lines(limit=8)
+
     def _import_notes(self) -> None:
         source = filedialog.askopenfilename(
             title="Notizen importieren", filetypes=[("Text oder JSON", "*.txt *.json"), ("Alle Dateien", "*.*")]
@@ -305,8 +353,12 @@ class ControlCenterApp:
         self._state = DashboardState(base)
         self._layout.state = self._state
         self._startup_guide = StartupGuide(str(self._state.base_path / ".venv"))
+        self._genre_archive = GenreArchive(self._self_check.base_path)
+        self._todo_manager = TodoManager(self._self_check.base_path)
         if self._layout.note_panel:
             self._layout.note_panel.status_color_provider = self._state.rotate_status_colors
+        self._layout.refresh_todos()
+        self._layout.refresh_genres()
         self._state.ensure_project_structure()
         self._logging_manager.log_system(f"Projektordner gesetzt: {base}")
         self._set_status(f"Projektpfad aktiv: {base}")
@@ -417,6 +469,11 @@ class ControlCenterApp:
             on_edit_hints=self._edit_hints,
             on_choose_project=self._choose_project_dir,
             info_provider=self._best_practice_info,
+            todo_provider=self._todo_preview,
+            on_add_todo=self._add_todo,
+            on_toggle_todo=self._toggle_todo_done,
+            genre_summary_provider=self._genre_summary,
+            on_add_genre=self._add_genre_profile,
         )
         self._init_menu()
         self._attach_validated_inputs()
