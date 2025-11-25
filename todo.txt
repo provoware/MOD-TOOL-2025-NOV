@@ -30,5 +30,7 @@ Fortschritt: 100% (23/23 Aufgaben erledigt)
 - [x] Testdetails aus der Startroutine im Log sichtbar gemacht.
 - [x] DashboardLayout mit Standard-Status (State) für Tests und Barrierefreiheit abgesichert.
 - [x] Barrierearmes Raster mit Mindestgrößen für Header, Footer und Sidebar definiert.
+- [x] Neon-Theme mit kontraststarker Akzentfarbe und farbbänder ohne negative Abstände ergänzt.
+- [x] Build-Defaults mit sicheren Rückfall-Callbacks für Startroutine, Warn-/Fehler-Ampel und Tests hinterlegt.
 - [x] Neon-Theme und Modul-Farbbänder für klare visuelle Orientierung ergänzt.
 - [x] Build-Defaults mit sicheren Rückfall-Callbacks für Startroutine und Tests hinterlegt.

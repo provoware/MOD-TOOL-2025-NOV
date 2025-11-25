@@ -20,6 +20,7 @@ class ThemeManager:
         "Kontrast": {"background": "#000000", "foreground": "#ffffff", "accent": "#ffd166"},
         "Blau": {"background": "#e6f0ff", "foreground": "#102a43", "accent": "#2c5282"},
         "Wald": {"background": "#0b3d2e", "foreground": "#e5f4ec", "accent": "#40e0d0"},
+        "Neon": {"background": "#0a0f1f", "foreground": "#e0e7ff", "accent": "#3b82f6"},
         "Neon": {"background": "#0a0f1f", "foreground": "#e0e7ff", "accent": "#7c3aed"},
     }
 
@@ -72,7 +73,7 @@ class ThemeManager:
         self.root.configure(bg=bg)
         for element in ["TFrame", "TLabel", "TLabelFrame", "TButton", "TCombobox", "Treeview"]:
             self.style.configure(element, background=bg, foreground=fg)
-        self.style.configure("TButton", padding=8, relief="raised")
+        self.style.configure("TButton", padding=(12, 10), relief="raised", borderwidth=2)
         self.style.configure("TCombobox", fieldbackground="white")
         self.style.configure("Treeview", fieldbackground=bg, bordercolor=accent)
         self.style.configure("TCheckbutton", background=bg, foreground=fg)

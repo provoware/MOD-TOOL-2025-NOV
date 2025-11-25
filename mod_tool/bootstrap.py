@@ -121,9 +121,12 @@ class Bootstrapper:
 
         status = self.self_check.full_check()
         for key, value in status.items():
-            self._feedback(f"Selbstprüfung {key}: {value}")
-        ok_states = {"vorhanden", "automatisch erstellt", "ok", "übersprungen"}
-        return "ok" if all(val in ok_states for val in status.values()) else "warnung"
+            if key.endswith("_info"):
+                readable_key = key.replace("_info", " (Details)")
+            else:
+                readable_key = key
+            self._feedback(f"Selbstprüfung {readable_key}: {value}")
+        return status.get("gesamt", "warnung")
 
     def maybe_relaunch_in_venv(self) -> None:
         """Restart the process inside the venv for a seamless user flow."""

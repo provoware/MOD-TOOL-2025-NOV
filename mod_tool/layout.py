@@ -489,6 +489,10 @@ class DashboardLayout:
                     logging_manager=self.logging_manager,
                     status_color_provider=self.state.rotate_status_colors,
                 )
+                color_band = tk.Frame(
+                    pane, height=8, background=color_primary, highlightthickness=0
+                )
+                color_band.pack(fill=tk.X, padx=6, pady=(0, 6))
                 color_band = tk.Frame(pane, height=8, background=color_primary, highlightthickness=0)
                 color_band.pack(fill=tk.X, padx=-4, pady=(0, 6))
                 pane.configure(style="Pane.TLabelframe")
@@ -522,6 +526,31 @@ class DashboardLayout:
             style="Helper.TLabel",
         )
         self.info_label.pack(anchor="w")
+
+        self.status_var = tk.StringVar(value="Ampel: alles ok – Klick für Details")
+        self.status_indicator = tk.Label(
+            info_block,
+            textvariable=self.status_var,
+            background="#16a34a",
+            foreground="#ffffff",
+            padx=10,
+            pady=6,
+            relief=tk.GROOVE,
+            cursor="hand2",
+        )
+        self.status_indicator.pack(fill=tk.X, pady=(6, 0))
+
+    def set_status_light(self, level: str, message: str) -> None:
+        """Update the footer status light with warning/error levels."""
+
+        palette = {
+            "ok": "#16a34a",
+            "warnung": "#f59e0b",
+            "fehler": "#dc2626",
+        }
+        color = palette.get(level, "#2563eb")
+        self.status_var.set(message)
+        self.status_indicator.configure(background=color)
 
     def describe_sections(self) -> list[LayoutSection]:
         """Expose layout sections for manifest creation and accessibility docs."""
