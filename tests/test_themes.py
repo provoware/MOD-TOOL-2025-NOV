@@ -1,3 +1,4 @@
+import tkinter as tk
 import unittest
 
 from mod_tool.themes import ThemeManager
@@ -27,6 +28,21 @@ class ThemeAccessibilityTests(unittest.TestCase):
     def test_accessibility_report_rejects_invalid_ratio(self):
         with self.assertRaises(ValueError):
             ThemeManager.accessibility_report(0)
+
+    def test_invert_theme_switches_text_colors(self):
+        try:
+            root = tk.Tk()
+            root.withdraw()
+        except tk.TclError:
+            self.skipTest("Tk nicht verfügbar")
+        manager = ThemeManager(root)
+        manager.apply_theme("Invertiert")
+        text_widget = tk.Text(root)
+        manager.apply_text_theme(text_widget)
+        palette = manager.palette
+        self.assertEqual(text_widget.cget("foreground"), palette["background"])
+        self.assertEqual(text_widget.cget("background"), palette["foreground"])
+        root.destroy()
 
 
 if __name__ == "__main__":  # pragma: no cover

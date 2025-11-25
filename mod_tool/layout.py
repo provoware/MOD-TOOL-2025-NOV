@@ -192,7 +192,11 @@ class WorkspacePane(ttk.LabelFrame):
         self._menu.add_command(label="Speichern & prüfen", command=self.save_content)
 
         ttk.Label(self, text=self.description, wraplength=240).pack(anchor="w")
-        self.text = tk.Text(self, height=6, wrap="word")
+        text_container = ttk.Frame(self)
+        text_container.columnconfigure(0, weight=1)
+        text_container.rowconfigure(0, weight=1)
+
+        self.text = tk.Text(text_container, height=6, wrap="word")
         self.text.insert(
             "1.0",
             "Freier Bereich für Notizen, Modul-Befehle oder To-dos."
@@ -202,7 +206,15 @@ class WorkspacePane(ttk.LabelFrame):
             self.theme_manager.apply_text_theme(self.text)
         self.text.bind("<Button-3>", self._show_menu)
         self.text.bind("<Control-Return>", lambda event: self.save_content())
-        self.text.pack(fill=tk.BOTH, expand=True, pady=4)
+
+        y_scroll = ttk.Scrollbar(text_container, orient="vertical", command=self.text.yview)
+        x_scroll = ttk.Scrollbar(text_container, orient="horizontal", command=self.text.xview)
+        self.text.configure(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
+
+        self.text.grid(row=0, column=0, sticky="nsew")
+        y_scroll.grid(row=0, column=1, sticky="ns")
+        x_scroll.grid(row=1, column=0, sticky="ew")
+        text_container.pack(fill=tk.BOTH, expand=True, pady=4)
 
         button_bar = ttk.Frame(self)
         ttk.Button(button_bar, text="Speichern & prüfen", command=self.save_content).pack(
@@ -283,9 +295,20 @@ class NotePanel(ttk.LabelFrame):
         self.on_autosave = on_autosave
         self.status_color_provider = status_color_provider
         self.status_var = tk.StringVar(value="Tippe Notizen. Verlassen = Autosave. Rückgängig jederzeit möglich.")
-        self.text = tk.Text(self, height=5, wrap="word", undo=True)
-        self.text.pack(fill=tk.BOTH, expand=True)
+        text_container = ttk.Frame(self)
+        text_container.columnconfigure(0, weight=1)
+        text_container.rowconfigure(0, weight=1)
+
+        self.text = tk.Text(text_container, height=5, wrap="word", undo=True)
+        y_scroll = ttk.Scrollbar(text_container, orient="vertical", command=self.text.yview)
+        x_scroll = ttk.Scrollbar(text_container, orient="horizontal", command=self.text.xview)
+        self.text.configure(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
         self.text.bind("<FocusOut>", self._auto_save_event)
+
+        self.text.grid(row=0, column=0, sticky="nsew")
+        y_scroll.grid(row=0, column=1, sticky="ns")
+        x_scroll.grid(row=1, column=0, sticky="ew")
+        text_container.pack(fill=tk.BOTH, expand=True)
 
         button_bar = ttk.Frame(self)
         ttk.Button(button_bar, text="Speichern", command=self._save).pack(side=tk.LEFT)
@@ -363,8 +386,11 @@ class TodoPanel(ttk.LabelFrame):
         form.columnconfigure(1, weight=1)
         form.grid(row=0, column=0, sticky="ew")
 
+        tree_frame = ttk.Frame(self)
+        tree_frame.columnconfigure(0, weight=1)
+        tree_frame.rowconfigure(0, weight=1)
         self.tree = ttk.Treeview(
-            self,
+            tree_frame,
             columns=("due", "title", "done"),
             show="headings",
             height=6,
@@ -376,7 +402,13 @@ class TodoPanel(ttk.LabelFrame):
         self.tree.column("title", width=180, anchor="w")
         self.tree.column("done", width=70, anchor="center")
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
-        self.tree.grid(row=1, column=0, sticky="nsew", pady=(6, 0))
+        y_scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
+        x_scroll = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
+        self.tree.grid(row=0, column=0, sticky="nsew", pady=(6, 0))
+        y_scroll.grid(row=0, column=1, sticky="ns", pady=(6, 0))
+        x_scroll.grid(row=1, column=0, sticky="ew")
+        tree_frame.grid(row=1, column=0, sticky="nsew")
 
         ttk.Button(self, text="Status umschalten", command=self._toggle_selected).grid(
             row=2, column=0, sticky="e", pady=(6, 0)
@@ -455,8 +487,15 @@ class GenrePanel(ttk.LabelFrame):
         form.columnconfigure(1, weight=1)
         form.grid(row=0, column=0, sticky="ew")
 
-        self.summary_list = tk.Listbox(self, height=6)
-        self.summary_list.grid(row=1, column=0, sticky="nsew", pady=(6, 0))
+        list_frame = ttk.Frame(self)
+        list_frame.columnconfigure(0, weight=1)
+        list_frame.rowconfigure(0, weight=1)
+        self.summary_list = tk.Listbox(list_frame, height=6)
+        y_scroll = ttk.Scrollbar(list_frame, orient="vertical", command=self.summary_list.yview)
+        self.summary_list.configure(yscrollcommand=y_scroll.set)
+        self.summary_list.grid(row=0, column=0, sticky="nsew", pady=(6, 0))
+        y_scroll.grid(row=0, column=1, sticky="ns", pady=(6, 0))
+        list_frame.grid(row=1, column=0, sticky="nsew")
         ttk.Label(self, textvariable=self.status_var, style="Helper.TLabel").grid(
             row=2, column=0, sticky="w", pady=(4, 0)
         )
@@ -717,7 +756,9 @@ class DashboardLayout:
         workspace = ttk.Frame(workspace_container)
         workspace.grid(row=0, column=1, sticky="nsew")
         workspace.columnconfigure(0, weight=1)
-        workspace.rowconfigure(2, weight=1)
+        workspace.rowconfigure(0, weight=1)
+        workspace.rowconfigure(1, weight=1)
+        workspace.rowconfigure(2, weight=2)
 
         settings_panel = self._build_settings_panel(
             workspace_container,
@@ -734,14 +775,15 @@ class DashboardLayout:
             on_autosave=on_autosave_note,
             status_color_provider=self.state.rotate_status_colors,
         )
-        self.note_panel.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        self.note_panel.grid(row=0, column=0, sticky="nsew", pady=(0, 8))
         self.theme_manager.apply_text_theme(self.note_panel.text)
 
         helper_container = ttk.Frame(workspace)
-        helper_container.grid(row=1, column=0, sticky="ew", pady=(0, 8))
+        helper_container.grid(row=1, column=0, sticky="nsew", pady=(0, 8))
         helper_container.columnconfigure(0, weight=1)
         helper_container.columnconfigure(1, weight=1)
         helper_container.columnconfigure(2, weight=1)
+        helper_container.rowconfigure(0, weight=1)
 
         self.todo_panel = TodoPanel(
             helper_container,

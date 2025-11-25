@@ -61,3 +61,5 @@ Fortschritt: 100% (39/39 Aufgaben erledigt)
 Fortschritt: 100% (42/42 Aufgaben erledigt)
 - [x] Genres-Tool aus dem Browser-Prototyp portiert und als Modul mit Profilverwaltung integriert.
 - [x] Automatische Tests für Zufallsauswahl, Import/Export und Validierung ergänzt.
+- [x] Scrollbare Text-, Listen- und Tabellenbereiche für volle Sichtbarkeit ergänzt.
+- [x] Invertiertes Hochkontrast-Theme samt Validierungen und Best-Practice-Tests hinterlegt.
