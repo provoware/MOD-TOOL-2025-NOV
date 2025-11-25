@@ -58,3 +58,6 @@ Fortschritt: 100% (39/39 Aufgaben erledigt)
 - [x] Selbstcheck um Abhängigkeitsvalidierung samt Unit-Tests erweitert.
 - [x] Snippet-Bibliothek als Modul mit Import/Export, Clipboard und Validierungen integriert.
 - [x] Zusätzliche Unit-Tests für das Snippet-Archiv zur Qualitätssicherung ergänzt.
+Fortschritt: 100% (42/42 Aufgaben erledigt)
+- [x] Genres-Tool aus dem Browser-Prototyp portiert und als Modul mit Profilverwaltung integriert.
+- [x] Automatische Tests für Zufallsauswahl, Import/Export und Validierung ergänzt.

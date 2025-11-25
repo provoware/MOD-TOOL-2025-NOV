@@ -19,6 +19,7 @@ from .bootstrap import Bootstrapper
 from .dashboard_state import DashboardState
 from .diagnostics import guarded_action
 from .genre_archive import GenreArchive
+from .genres_tool import GenresToolStore, GenresToolWindow
 from .guidance import StartupGuide
 from .layout import DashboardLayout
 from .manifest import (
@@ -68,6 +69,8 @@ class ControlCenterApp:
         self._genre_archive = GenreArchive(self._self_check.base_path)
         self._todo_manager = TodoManager(self._self_check.base_path)
         self._snippet_store = SnippetStore(self._self_check.base_path)
+        self._genres_store = GenresToolStore(self._self_check.base_path)
+        self._genres_window: GenresToolWindow | None = None
 
         self._layout = DashboardLayout(
             self._root,
@@ -109,6 +112,7 @@ class ControlCenterApp:
         tools_menu = tk.Menu(menubar, tearoff=0)
         tools_menu.add_command(label="Startroutine ausführen", command=self._on_manual_start)
         tools_menu.add_command(label="Schnell-Check", command=self._on_manual_health_check)
+        tools_menu.add_command(label="Genres-Tool öffnen", command=self._open_genres_tool)
         tools_menu.add_command(label="Hinweis-Liste bearbeiten", command=self._edit_hints)
         menubar.add_cascade(label="Werkzeuge", menu=tools_menu)
 
@@ -146,6 +150,7 @@ class ControlCenterApp:
             "Barrierefreiheit: Zoom, klare Kontraste und Tastaturbedienung nutzen.",
             "Bei Fehlern Optionen im Menü nutzen: Backup, Import/Export, Undo/Redo.",
             "Themes wechseln, wenn Blendung auftritt – alle Varianten sind kontrastgeprüft.",
+            "Genres-Tool nutzen: Profile anlegen, Zufall drücken, Ergebnis wird kopiert (Zufallsauswahl).",
         ]
 
     def _run_startup_sequence(self, source: str = "Autostart") -> None:
@@ -164,9 +169,11 @@ class ControlCenterApp:
             archive_path = self._genre_archive.ensure_archive()
             todo_path = self._todo_manager.ensure_store()
             snippet_path = self._snippet_store.ensure_store()
+            genre_tool_path = self._genres_store.ensure_store()
             self._logging_manager.log_system(f"Genre-Archiv bereitgestellt: {archive_path}")
             self._logging_manager.log_system(f"To-do-Ablage geprüft: {todo_path}")
             self._logging_manager.log_system(f"Snippet-Archiv bereitgestellt: {snippet_path}")
+            self._logging_manager.log_system(f"Genres-Tool-Daten geprüft: {genre_tool_path}")
             loaded = self._plugin_manager.load_plugins()
             self._logging_manager.log_system(
                 f"Plugins geladen ({len(loaded)}): {', '.join(loaded) if loaded else 'keine Module gefunden'}"
@@ -431,6 +438,21 @@ class ControlCenterApp:
 
         _render_index()
 
+    def _open_genres_tool(self) -> None:
+        """Öffnet das barrierefreie Genres-Tool mit Zufallsgenerator."""
+
+        @guarded_action("Genres-Tool", LOG)
+        def _render() -> None:
+            self._genres_store.ensure_store()
+            if self._genres_window is None:
+                self._genres_window = GenresToolWindow(
+                    self._root, self._genres_store, self._theme_manager, self._logging_manager
+                )
+            self._genres_window.show()
+            self._logging_manager.log_system("Genres-Tool geöffnet – Zufallsauswahl bereit")
+
+        _render()
+
     def _build_runtime_manifest(self) -> None:
         """Generate and persist the layout/structure manifest for transparency."""
 
@@ -475,6 +497,7 @@ class ControlCenterApp:
             on_import_notes=self._import_notes,
             on_export_notes=self._export_notes,
             on_edit_hints=self._edit_hints,
+            on_open_genres_tool=self._open_genres_tool,
             on_choose_project=self._choose_project_dir,
             info_provider=self._best_practice_info,
             todo_provider=self._todo_preview,
