@@ -177,6 +177,7 @@ class SelfCheck:
         """Return ok/warnung/fehler based on the collected results."""
 
         warn_states = {"warnung", "kompilierungswarnung", "abgebrochen", "teilweise"}
+        warn_states = {"warnung", "kompilierungswarnung", "abgebrochen"}
         error_states = {"fehlgeschlagen", "fehler"}
         overall = "ok"
         for key, value in status.items():

@@ -122,6 +122,12 @@ class Bootstrapper:
         status = self.self_check.full_check()
         for line in self.self_check.human_summary(status):
             self._feedback(f"Selbstprüfung: {line}")
+        for key, value in status.items():
+            if key.endswith("_info"):
+                readable_key = key.replace("_info", " (Details)")
+            else:
+                readable_key = key
+            self._feedback(f"Selbstprüfung {readable_key}: {value}")
         return status.get("gesamt", "warnung")
 
     def maybe_relaunch_in_venv(self) -> None:
