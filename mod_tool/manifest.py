@@ -125,23 +125,39 @@ def default_layout_manifest(theme_names: Iterable[str] | None = None) -> LayoutM
         LayoutSection(
             identifier="header",
             title="Steuerzentrale",
-            purpose="Klick & Start, Schnell-Check, Theme-Wahl",
-            accessibility_label="Obere Leiste mit Statusanzeigen und Startknöpfen",
+            purpose="Autopilot, Schnell-Check, Theme-Wahl, Fortschritt",
+            accessibility_label="Obere Leiste mit Statusanzeigen, Kontrast-Info und Startknöpfen",
         ),
         LayoutSection(
-            identifier="workspace",
-            title="Arbeitsbereich",
-            purpose="Vier flexibel belegbare Quadranten",
-            accessibility_label="Hauptbereich mit vier Panels für Module",
+            identifier="navigation",
+            title="Schnellzugriff",
+            purpose="Backup, Manifest-Check, Projektwahl, Hilfe",
+            accessibility_label="Linke Spalte mit festen Schaltflächen und klarer Tab-Reihenfolge",
+        ),
+        LayoutSection(
+            identifier="workspace-grid",
+            title="Arbeitsbereich 2x2",
+            purpose="Vier flexibel belegbare Quadranten für Status, Editor und Plugins",
+            accessibility_label="Hauptbereich mit zwei Reihen und klaren Überschriften pro Panel",
+        ),
+        LayoutSection(
+            identifier="utility-rail",
+            title="Werkzeugleiste",
+            purpose="Notizen (Autosave), To-dos, Genre-Archiv, Snippet-Bibliothek",
+            accessibility_label="Rechte Spalte mit validierten Eingabefeldern und Listen",
         ),
         LayoutSection(
             identifier="footer",
-            title="Fußleiste",
-            purpose="Debugging, Logging, Hinweise",
-            accessibility_label="Unterer Bereich mit Protokoll- und Hilfetexten",
+            title="Protokoll & Hilfe",
+            purpose="Debugging, Logging, Tastaturhinweise",
+            accessibility_label="Unterer Bereich mit Protokoll und Schnellhinweisen",
         ),
     ]
-    themes = list(theme_names) if theme_names else ["Hell", "Dunkel", "Kontrast", "Blau", "Wald"]
+    themes = (
+        list(theme_names)
+        if theme_names
+        else ["Hell", "Dunkel", "Kontrast", "Blau", "Wald", "Neon"]
+    )
     return LayoutManifest(version="1.0", sections=sections, themes=themes)
 
 

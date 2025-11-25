@@ -571,6 +571,28 @@ class GenrePanel(ttk.LabelFrame):
         self.summary_list.delete(0, tk.END)
         for line in self.summary_provider():
             self.summary_list.insert(tk.END, line)
+def recommended_layout_tips() -> list[str]:
+    """Return best-practice layout tips for multi-tools.
+
+    The tips always follow a simple routine: klare Kopfzeile, feste
+    Navigation, flexibles 2x2-Hauptfeld, Utility-Leiste und eine
+    Protokollzone. Output is validated to stay non-empty and safe for
+    the sidebar renderer.
+    """
+
+    tips = [
+        "Header oben: Start/Health, Theme-Wahl und Fortschritt klar sichtbar halten.",
+        "Linke Spalte: feste Schnellzugriffe (Backup, Manifest, Projektwahl).",
+        "Mitte: 2×2-Raster für Module – oben Statuskarten, unten Editoren/Plugins.",
+        "Rechte Spalte: Bibliotheken (Snippets), validierte Eingaben und Archivkarten.",
+        "Footer: Log/Debug, kurze Hilfe und zuletzt ausgeführte Routine anzeigen.",
+        "Routine: Startroutine → Gesundheitscheck → Plugin-Report → Notizen/To-dos sichern.",
+    ]
+    if not all(isinstance(tip, str) and tip.strip() for tip in tips):
+        raise ValueError("Layout-Tipps dürfen nicht leer sein")
+    return tips
+
+
 class Sidebar(ttk.LabelFrame):
     """Collapsible sidebar for quick actions and transparency info."""
 
@@ -718,7 +740,7 @@ class DashboardLayout:
         on_export_notes = on_export_notes or (lambda: None)
         on_edit_hints = on_edit_hints or (lambda: None)
         on_open_genres_tool = on_open_genres_tool or (lambda: None)
-        info_provider = info_provider or (lambda: ("Best Practices folgen noch",))
+        info_provider = info_provider or recommended_layout_tips
         todo_provider = todo_provider or (lambda: ())
         on_add_todo = on_add_todo or (lambda *_args: False)
         on_toggle_todo = on_toggle_todo or (lambda _id, _state: None)
@@ -816,6 +838,7 @@ class DashboardLayout:
         }
         self.sidebar = Sidebar(nav_column, actions=actions, info_provider=info_provider)
         self.sidebar.grid(row=1, column=0, sticky="nsw")
+        self.sidebar.refresh_info()
 
         workspace = ttk.Frame(workspace_container)
         workspace.grid(row=0, column=1, sticky="nsew")

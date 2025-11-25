@@ -7,7 +7,6 @@
       "Abhängigkeiten automatisch installieren",
       "Pflichtordner reparieren",
       "Syntax- und Format-Checks anstoßen",
-      "Qualitätssuite (pytest) kurz prüfen",
       "Schnelltests ausführen",
       "Plugins laden"
     ],
@@ -19,9 +18,8 @@
     ],
     "accessibility": {
       "screenreader": "Klare Beschriftungen und Status-Labels für jede Zone",
-      "kontrast": "Mehrere Farb-Themes inklusive Hochkontrast und Neon mit geprüftem Kontrast",
-      "tastatur": "Steuerung per Tab-Reihenfolge von oben nach unten",
-      "lesbarkeit": "Großtext-Schalter (150 %) und Zoom per Strg + Mausrad"
+      "kontrast": "Mehrere Farb-Themes inklusive Hochkontrast",
+      "tastatur": "Steuerung per Tab-Reihenfolge von oben nach unten"
     }
   },
   "layout_manifest": {
@@ -30,38 +28,32 @@
       {
         "id": "header",
         "title": "Steuerzentrale",
-        "purpose": "Start, Prüfungen, Theme-Auswahl",
-        "accessibility_label": "Obere Leiste mit Status und Buttons"
+        "purpose": "Autopilot, Schnell-Check, Theme-Wahl, Fortschritt",
+        "accessibility_label": "Obere Leiste mit Statusanzeigen, Kontrast-Info und Startknöpfen"
       },
       {
-        "id": "pane-1",
-        "title": "Bereich 1",
-        "purpose": "Freier Slot",
-        "accessibility_label": "Linkes oberes Panel"
+        "id": "navigation",
+        "title": "Schnellzugriff",
+        "purpose": "Backup, Manifest-Check, Projektwahl, Hilfe",
+        "accessibility_label": "Linke Spalte mit festen Schaltflächen und klarer Tab-Reihenfolge"
       },
       {
-        "id": "pane-2",
-        "title": "Bereich 2",
-        "purpose": "Freier Slot",
-        "accessibility_label": "Rechtes oberes Panel"
+        "id": "workspace-grid",
+        "title": "Arbeitsbereich 2x2",
+        "purpose": "Vier flexibel belegbare Quadranten für Status, Editor und Plugins",
+        "accessibility_label": "Hauptbereich mit zwei Reihen und klaren Überschriften pro Panel"
       },
       {
-        "id": "pane-3",
-        "title": "Bereich 3",
-        "purpose": "Freier Slot",
-        "accessibility_label": "Linkes unteres Panel"
-      },
-      {
-        "id": "pane-4",
-        "title": "Bereich 4",
-        "purpose": "Freier Slot",
-        "accessibility_label": "Rechtes unteres Panel"
+        "id": "utility-rail",
+        "title": "Werkzeugleiste",
+        "purpose": "Notizen (Autosave), To-dos, Genre-Archiv, Snippet-Bibliothek",
+        "accessibility_label": "Rechte Spalte mit validierten Eingabefeldern und Listen"
       },
       {
         "id": "footer",
-        "title": "Fußleiste",
-        "purpose": "Debug, Log, Hinweise",
-        "accessibility_label": "Unterer Bereich mit Protokoll"
+        "title": "Protokoll & Hilfe",
+        "purpose": "Debugging, Logging, Tastaturhinweise",
+        "accessibility_label": "Unterer Bereich mit Protokoll und Schnellhinweisen"
       }
     ],
     "themes": [
