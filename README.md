@@ -28,6 +28,7 @@ Jetzt mit "Klick & Start"-Routine, Debug/Logging-Umschalter und Schnellcheck-Sch
 ## Zusätzliche Prüfungen für Codequalität
 - Syntax-Check (`compileall`) läuft automatisch über `mod_tool/`.
 - Unittests decken Self-Check, Plugins und das Manifest ab: `python -m unittest discover`.
+  Ein Timeout stoppt blockierende Tests automatisch und schreibt den Hinweis ins Log.
 - Format-Hinweis: Für optionale Formatierung können `ruff` oder `black` in `.venv` installiert und ausgeführt werden.
 
 ## Plugins

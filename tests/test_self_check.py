@@ -33,8 +33,28 @@ class SelfCheckTests(unittest.TestCase):
             self.assertIn(result["manifest"], {"vorhanden", "erstellt"})
             self.assertIn(result["accessibility"], {"ok", "warnung"})
             self.assertIn("accessibility_notes", result)
+            self.assertIn("tests_info", result)
             manifest_file = dummy_root / "manifest.json"
             self.assertTrue(manifest_file.exists())
+
+    def test_quick_tests_timeout_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = pathlib.Path(tmp_dir)
+            tests_dir = base / "tests"
+            tests_dir.mkdir()
+            (tests_dir / "test_sleep.py").write_text(
+                (
+                    "import time\nimport unittest\n"
+                    "class Slow(unittest.TestCase):\n"
+                    "    def test_wait(self):\n        time.sleep(5)\n"
+                )
+            )
+
+            check = SelfCheck([base / "logs"], base_path=base, test_timeout_seconds=1)
+            status, info = check.run_quick_tests()
+
+            self.assertEqual(status, "abgebrochen")
+            self.assertIn("Timeout", info)
 
 
 if __name__ == "__main__":  # pragma: no cover
