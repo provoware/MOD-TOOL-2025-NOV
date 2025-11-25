@@ -139,6 +139,7 @@ class ControlCenterApp:
             "Daten lokal halten, sensible Infos nicht teilen (Datensparsamkeit).",
             "Barrierefreiheit: Zoom, klare Kontraste und Tastaturbedienung nutzen.",
             "Bei Fehlern Optionen im Menü nutzen: Backup, Import/Export, Undo/Redo.",
+            "Themes wechseln, wenn Blendung auftritt – alle Varianten sind kontrastgeprüft.",
         ]
 
     def _run_startup_sequence(self, source: str = "Autostart") -> None:

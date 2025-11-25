@@ -43,6 +43,7 @@ class HeaderControls:
         self.progress_label = tk.StringVar(value="Startroutine: bereit")
         self.debug_enabled = tk.BooleanVar(value=False)
         self.clock_var = tk.StringVar(value="Zeit wird geladen…")
+        self.accessibility_var = tk.StringVar(value="Kontrast-Check lädt…")
         self.input_fields: list[ValidatedEntry] = []
 
     def build(self) -> None:
@@ -63,6 +64,9 @@ class HeaderControls:
         ttk.Label(self.frame, textvariable=self.stat_var).grid(row=3, column=0, sticky="w")
         ttk.Label(self.frame, textvariable=self.clock_var, style="Helper.TLabel").grid(
             row=5, column=0, sticky="w"
+        )
+        ttk.Label(self.frame, textvariable=self.accessibility_var, style="Helper.TLabel").grid(
+            row=6, column=0, sticky="w", pady=(2, 0)
         )
 
         ttk.Button(
@@ -147,6 +151,14 @@ class HeaderControls:
         self.progress_var.set(safe_value)
         self.progress_label.set(label)
 
+    def set_accessibility_status(self, report: dict[str, str]) -> None:
+        if not isinstance(report, dict) or "status" not in report or "details" not in report:
+            raise ValueError("Ungültiger Kontrast-Report übergeben")
+        status = report.get("status", "warnung")
+        detail = report.get("details", "Keine Details")
+        prefix = "Kontrast ok" if status == "ok" else "Kontrast prüfen"
+        self.accessibility_var.set(f"{prefix}: {detail}")
+
 
 class WorkspacePane(ttk.LabelFrame):
     """Editable workspace pane with context menu and validation."""
@@ -158,6 +170,7 @@ class WorkspacePane(ttk.LabelFrame):
         description: str,
         logging_manager: LoggingManager | None = None,
         status_color_provider: Callable[[bool], tuple[str, str]] | None = None,
+        theme_manager: ThemeManager | None = None,
     ) -> None:
         super().__init__(parent, text=title, padding=10, labelanchor="n", style="Pane.TLabelframe")
         self.logging_manager = logging_manager
@@ -165,6 +178,7 @@ class WorkspacePane(ttk.LabelFrame):
             value="Bereit: Einfach Text eintragen. Rechtsklick öffnet das Kontextmenü."
         )
         self.status_color_provider = status_color_provider
+        self.theme_manager = theme_manager
         self.description = description
         self._menu = tk.Menu(self, tearoff=False)
         self._menu.add_command(label="Kopieren", command=self.copy_selection)
@@ -181,6 +195,8 @@ class WorkspacePane(ttk.LabelFrame):
             "Freier Bereich für Notizen, Modul-Befehle oder To-dos."
             " Tastatur: Strg+Enter speichert den Inhalt.",
         )
+        if self.theme_manager:
+            self.theme_manager.apply_text_theme(self.text)
         self.text.bind("<Button-3>", self._show_menu)
         self.text.bind("<Control-Return>", lambda event: self.save_content())
         self.text.pack(fill=tk.BOTH, expand=True, pady=4)
@@ -446,6 +462,8 @@ class DashboardLayout:
             on_toggle_sidebar,
         )
         self.header_controls.build()
+        report = self.theme_manager.accessibility_report()
+        self.header_controls.set_accessibility_status(report)
         self.header_controls.frame.grid(row=0, column=0, sticky="nsew")
 
         workspace_container = ttk.Frame(self.root, padding=8)
@@ -477,6 +495,7 @@ class DashboardLayout:
             status_color_provider=self.state.rotate_status_colors,
         )
         self.note_panel.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        self.theme_manager.apply_text_theme(self.note_panel.text)
 
         pane_grid = ttk.Frame(workspace)
         pane_grid.grid(row=1, column=0, sticky="nsew")
@@ -501,6 +520,7 @@ class DashboardLayout:
                     description=pane_descriptions[index],
                     logging_manager=self.logging_manager,
                     status_color_provider=self.state.rotate_status_colors,
+                    theme_manager=self.theme_manager,
                 )
                 color_band = tk.Frame(
                     pane, height=8, background=color_primary, highlightthickness=0
