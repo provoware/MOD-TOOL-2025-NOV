@@ -6,6 +6,8 @@ from pathlib import Path
 from tkinter import ttk
 from typing import Callable, Iterable, Sequence
 
+from .todo import TodoItem
+
 from .dashboard_state import DashboardState
 
 from .logging_dashboard import LoggingManager
@@ -43,6 +45,7 @@ class HeaderControls:
         self.progress_label = tk.StringVar(value="Startroutine: bereit")
         self.debug_enabled = tk.BooleanVar(value=False)
         self.clock_var = tk.StringVar(value="Zeit wird geladen…")
+        self.accessibility_var = tk.StringVar(value="Kontrast-Check lädt…")
         self.input_fields: list[ValidatedEntry] = []
 
     def build(self) -> None:
@@ -63,6 +66,9 @@ class HeaderControls:
         ttk.Label(self.frame, textvariable=self.stat_var).grid(row=3, column=0, sticky="w")
         ttk.Label(self.frame, textvariable=self.clock_var, style="Helper.TLabel").grid(
             row=5, column=0, sticky="w"
+        )
+        ttk.Label(self.frame, textvariable=self.accessibility_var, style="Helper.TLabel").grid(
+            row=6, column=0, sticky="w", pady=(2, 0)
         )
 
         ttk.Button(
@@ -147,6 +153,14 @@ class HeaderControls:
         self.progress_var.set(safe_value)
         self.progress_label.set(label)
 
+    def set_accessibility_status(self, report: dict[str, str]) -> None:
+        if not isinstance(report, dict) or "status" not in report or "details" not in report:
+            raise ValueError("Ungültiger Kontrast-Report übergeben")
+        status = report.get("status", "warnung")
+        detail = report.get("details", "Keine Details")
+        prefix = "Kontrast ok" if status == "ok" else "Kontrast prüfen"
+        self.accessibility_var.set(f"{prefix}: {detail}")
+
 
 class WorkspacePane(ttk.LabelFrame):
     """Editable workspace pane with context menu and validation."""
@@ -158,6 +172,7 @@ class WorkspacePane(ttk.LabelFrame):
         description: str,
         logging_manager: LoggingManager | None = None,
         status_color_provider: Callable[[bool], tuple[str, str]] | None = None,
+        theme_manager: ThemeManager | None = None,
     ) -> None:
         super().__init__(parent, text=title, padding=10, labelanchor="n", style="Pane.TLabelframe")
         self.logging_manager = logging_manager
@@ -165,6 +180,7 @@ class WorkspacePane(ttk.LabelFrame):
             value="Bereit: Einfach Text eintragen. Rechtsklick öffnet das Kontextmenü."
         )
         self.status_color_provider = status_color_provider
+        self.theme_manager = theme_manager
         self.description = description
         self._menu = tk.Menu(self, tearoff=False)
         self._menu.add_command(label="Kopieren", command=self.copy_selection)
@@ -181,6 +197,8 @@ class WorkspacePane(ttk.LabelFrame):
             "Freier Bereich für Notizen, Modul-Befehle oder To-dos."
             " Tastatur: Strg+Enter speichert den Inhalt.",
         )
+        if self.theme_manager:
+            self.theme_manager.apply_text_theme(self.text)
         self.text.bind("<Button-3>", self._show_menu)
         self.text.bind("<Control-Return>", lambda event: self.save_content())
         self.text.pack(fill=tk.BOTH, expand=True, pady=4)
@@ -310,8 +328,157 @@ class NotePanel(ttk.LabelFrame):
         fg, bg = self.status_color_provider(ok)
         self.status_label.configure(foreground=fg, background=bg)
         self.status_var.set(message)
+        
+
+class TodoPanel(ttk.LabelFrame):
+    """Anzeige und Pflege der nächsten To-dos."""
+
+    def __init__(
+        self,
+        parent: tk.Widget,
+        on_add: Callable[[str, str | None, str, bool], bool],
+        todo_provider: Callable[[], Sequence[TodoItem]],
+        on_toggle_done: Callable[[str, bool], None],
+    ) -> None:
+        super().__init__(parent, text="To-do-Liste (Top 10)", padding=10, style="Note.TLabelframe")
+        self.on_add = on_add
+        self.todo_provider = todo_provider
+        self.on_toggle_done = on_toggle_done
+        self.title_var = tk.StringVar()
+        self.date_var = tk.StringVar()
+        self.info_var = tk.StringVar()
+        self.done_var = tk.BooleanVar(value=False)
+        self.status_var = tk.StringVar(value="Nächste Schritte werden hier angezeigt.")
+
+        form = ttk.Frame(self)
+        ttk.Label(form, text="Titel").grid(row=0, column=0, sticky="w")
+        ttk.Entry(form, textvariable=self.title_var).grid(row=0, column=1, sticky="ew", padx=(4, 0))
+        ttk.Label(form, text="Fällig (JJJJ-MM-TT oder leer)").grid(row=1, column=0, sticky="w")
+        ttk.Entry(form, textvariable=self.date_var).grid(row=1, column=1, sticky="ew", padx=(4, 0))
+        ttk.Label(form, text="Info (kurz)").grid(row=2, column=0, sticky="w")
+        ttk.Entry(form, textvariable=self.info_var).grid(row=2, column=1, sticky="ew", padx=(4, 0))
+        ttk.Checkbutton(form, text="Erledigt", variable=self.done_var).grid(row=3, column=0, sticky="w")
+        ttk.Button(form, text="Speichern", command=self._save).grid(row=3, column=1, sticky="e")
+        form.columnconfigure(1, weight=1)
+        form.grid(row=0, column=0, sticky="ew")
+
+        self.tree = ttk.Treeview(
+            self,
+            columns=("due", "title", "done"),
+            show="headings",
+            height=6,
+        )
+        self.tree.heading("due", text="Datum")
+        self.tree.heading("title", text="Titel")
+        self.tree.heading("done", text="Status")
+        self.tree.column("due", width=90, anchor="center")
+        self.tree.column("title", width=180, anchor="w")
+        self.tree.column("done", width=70, anchor="center")
+        self.tree.bind("<<TreeviewSelect>>", self._on_select)
+        self.tree.grid(row=1, column=0, sticky="nsew", pady=(6, 0))
+
+        ttk.Button(self, text="Status umschalten", command=self._toggle_selected).grid(
+            row=2, column=0, sticky="e", pady=(6, 0)
+        )
+        ttk.Label(self, textvariable=self.status_var, style="Helper.TLabel").grid(
+            row=3, column=0, sticky="w", pady=(4, 0)
+        )
+        self.columnconfigure(0, weight=1)
+        self.refresh()
+
+    def _save(self) -> None:
+        success = self.on_add(
+            self.title_var.get(), self.date_var.get() or None, self.info_var.get(), self.done_var.get()
+        )
+        if success:
+            self.title_var.set("")
+            self.date_var.set("")
+            self.info_var.set("")
+            self.done_var.set(False)
+            self.status_var.set("Gespeichert und geprüft – Liste aktualisiert.")
+            self.refresh()
+        else:
+            self.status_var.set("Eingabe prüfen – es wurde nichts gespeichert.")
+
+    def _on_select(self, event: tk.Event[tk.Misc]) -> None:  # pragma: no cover - UI binding
+        selection = self.tree.selection()
+        if not selection:
+            return
+        item_id = selection[0]
+        self.done_var.set(self.tree.set(item_id, "done") == "Erledigt")
+
+    def _toggle_selected(self) -> None:
+        selection = self.tree.selection()
+        if not selection:
+            self.status_var.set("Bitte einen Eintrag wählen.")
+            return
+        item_id = selection[0]
+        new_state = not (self.tree.set(item_id, "done") == "Erledigt")
+        self.on_toggle_done(item_id, new_state)
+        self.status_var.set("Status aktualisiert – Liste neu geladen.")
+        self.refresh()
+
+    def refresh(self) -> None:
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        for todo in self.todo_provider():
+            label = "Erledigt" if todo.done else "Offen"
+            self.tree.insert("", "end", iid=todo.id, values=(todo.due_date or "offen", todo.title, label))
 
 
+class GenrePanel(ttk.LabelFrame):
+    """Schnelle Pflege des Genre-Archivs."""
+
+    def __init__(
+        self,
+        parent: tk.Widget,
+        on_add: Callable[[str, str, str], bool],
+        summary_provider: Callable[[], Sequence[str]],
+    ) -> None:
+        super().__init__(parent, text="Genre-Archiv", padding=10, style="Note.TLabelframe")
+        self.on_add = on_add
+        self.summary_provider = summary_provider
+        self.category_var = tk.StringVar()
+        self.profile_var = tk.StringVar()
+        self.desc_var = tk.StringVar()
+        self.status_var = tk.StringVar(value="Kategorien + Profile für dein Archiv.")
+
+        form = ttk.Frame(self)
+        ttk.Label(form, text="Kategorie").grid(row=0, column=0, sticky="w")
+        ttk.Entry(form, textvariable=self.category_var).grid(row=0, column=1, sticky="ew", padx=(4, 0))
+        ttk.Label(form, text="Profil/Name").grid(row=1, column=0, sticky="w")
+        ttk.Entry(form, textvariable=self.profile_var).grid(row=1, column=1, sticky="ew", padx=(4, 0))
+        ttk.Label(form, text="Kurzinfo").grid(row=2, column=0, sticky="w")
+        ttk.Entry(form, textvariable=self.desc_var).grid(row=2, column=1, sticky="ew", padx=(4, 0))
+        ttk.Button(form, text="Anlegen", command=self._save).grid(row=3, column=1, sticky="e", pady=(4, 0))
+        form.columnconfigure(1, weight=1)
+        form.grid(row=0, column=0, sticky="ew")
+
+        self.summary_list = tk.Listbox(self, height=6)
+        self.summary_list.grid(row=1, column=0, sticky="nsew", pady=(6, 0))
+        ttk.Label(self, textvariable=self.status_var, style="Helper.TLabel").grid(
+            row=2, column=0, sticky="w", pady=(4, 0)
+        )
+        self.columnconfigure(0, weight=1)
+        self.refresh()
+
+    def _save(self) -> None:
+        success = self.on_add(
+            self.category_var.get(), self.profile_var.get(), self.desc_var.get()
+        )
+        if success:
+            self.category_var.set("")
+            self.profile_var.set("")
+            self.desc_var.set("")
+            self.status_var.set("Profil gespeichert – Archiv erneuert.")
+            self.refresh()
+        else:
+            self.status_var.set("Bitte Pflichtfelder füllen – nichts gespeichert.")
+
+    def refresh(self) -> None:
+        self.summary_list.delete(0, tk.END)
+        for line in self.summary_provider():
+            self.summary_list.insert(tk.END, line)
 class Sidebar(ttk.LabelFrame):
     """Collapsible sidebar for quick actions and transparency info."""
 
@@ -366,6 +533,8 @@ class DashboardLayout:
         self.header_controls: HeaderControls | None = None
         self.sidebar: Sidebar | None = None
         self.note_panel: NotePanel | None = None
+        self.todo_panel: TodoPanel | None = None
+        self.genre_panel: GenrePanel | None = None
         self.info_label: ttk.Label | None = None
         self.module_palette: Sequence[tuple[str, str]] = (
             ("#1fb6ff", "#e0f7ff"),  # Modul 1: Blau/Türkis
@@ -416,6 +585,11 @@ class DashboardLayout:
         on_export_notes: Callable[[], None] | None = None,
         on_edit_hints: Callable[[], None] | None = None,
         info_provider: Callable[[], Iterable[str]] | None = None,
+        todo_provider: Callable[[], Sequence[TodoItem]] | None = None,
+        on_add_todo: Callable[[str, str | None, str, bool], bool] | None = None,
+        on_toggle_todo: Callable[[str, bool], None] | None = None,
+        genre_summary_provider: Callable[[], Sequence[str]] | None = None,
+        on_add_genre: Callable[[str, str, str], bool] | None = None,
     ) -> None:
         self.theme_manager.configure_styles()
         self.root.columnconfigure(0, weight=1)
@@ -434,6 +608,11 @@ class DashboardLayout:
         on_export_notes = on_export_notes or (lambda: None)
         on_edit_hints = on_edit_hints or (lambda: None)
         info_provider = info_provider or (lambda: ("Best Practices folgen noch",))
+        todo_provider = todo_provider or (lambda: ())
+        on_add_todo = on_add_todo or (lambda *_args: False)
+        on_toggle_todo = on_toggle_todo or (lambda _id, _state: None)
+        genre_summary_provider = genre_summary_provider or (lambda: ("Keine Einträge",))
+        on_add_genre = on_add_genre or (lambda *_args: False)
 
         self.header_controls = HeaderControls(
             self.root,
@@ -446,6 +625,8 @@ class DashboardLayout:
             on_toggle_sidebar,
         )
         self.header_controls.build()
+        report = self.theme_manager.accessibility_report()
+        self.header_controls.set_accessibility_status(report)
         self.header_controls.frame.grid(row=0, column=0, sticky="nsew")
 
         workspace_container = ttk.Frame(self.root, padding=8)
@@ -468,7 +649,7 @@ class DashboardLayout:
         workspace = ttk.Frame(workspace_container)
         workspace.grid(row=0, column=1, sticky="nsew")
         workspace.columnconfigure(0, weight=1)
-        workspace.rowconfigure(1, weight=1)
+        workspace.rowconfigure(2, weight=1)
 
         self.note_panel = NotePanel(
             workspace,
@@ -477,9 +658,30 @@ class DashboardLayout:
             status_color_provider=self.state.rotate_status_colors,
         )
         self.note_panel.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        self.theme_manager.apply_text_theme(self.note_panel.text)
+
+        helper_container = ttk.Frame(workspace)
+        helper_container.grid(row=1, column=0, sticky="ew", pady=(0, 8))
+        helper_container.columnconfigure(0, weight=1)
+        helper_container.columnconfigure(1, weight=1)
+
+        self.todo_panel = TodoPanel(
+            helper_container,
+            on_add=on_add_todo,
+            todo_provider=todo_provider,
+            on_toggle_done=on_toggle_todo,
+        )
+        self.todo_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 4))
+
+        self.genre_panel = GenrePanel(
+            helper_container,
+            on_add=on_add_genre,
+            summary_provider=genre_summary_provider,
+        )
+        self.genre_panel.grid(row=0, column=1, sticky="nsew", padx=(4, 0))
 
         pane_grid = ttk.Frame(workspace)
-        pane_grid.grid(row=1, column=0, sticky="nsew")
+        pane_grid.grid(row=2, column=0, sticky="nsew")
         for i in range(2):
             pane_grid.columnconfigure(i, weight=1, uniform="pane")
             pane_grid.rowconfigure(i, weight=1, uniform="pane")
@@ -501,6 +703,7 @@ class DashboardLayout:
                     description=pane_descriptions[index],
                     logging_manager=self.logging_manager,
                     status_color_provider=self.state.rotate_status_colors,
+                    theme_manager=self.theme_manager,
                 )
                 color_band = tk.Frame(
                     pane, height=8, background=color_primary, highlightthickness=0
@@ -565,6 +768,14 @@ class DashboardLayout:
         self.status_var.set(message)
         self.status_indicator.configure(background=color)
 
+    def refresh_todos(self) -> None:
+        if self.todo_panel:
+            self.todo_panel.refresh()
+
+    def refresh_genres(self) -> None:
+        if self.genre_panel:
+            self.genre_panel.refresh()
+
     def describe_sections(self) -> list[LayoutSection]:
         """Expose layout sections for manifest creation and accessibility docs."""
 
@@ -586,6 +797,18 @@ class DashboardLayout:
                 title="Notizbereich",
                 purpose="Autosave-Notizen mit Undo/Redo",
                 accessibility_label="Eingabefeld speichert automatisch beim Verlassen",
+            ),
+            LayoutSection(
+                identifier="todos",
+                title="To-do-Liste",
+                purpose="Top 10 Aufgaben mit Datum und Status",
+                accessibility_label="Formular plus Tabelle für Aufgabenverwaltung",
+            ),
+            LayoutSection(
+                identifier="genre-archive",
+                title="Genre-Archiv",
+                purpose="Kategorien und Profile mit Duplikat-Schutz",
+                accessibility_label="Eingabefelder und Liste der letzten Einträge",
             ),
             *self._workspace_sections,
             LayoutSection(

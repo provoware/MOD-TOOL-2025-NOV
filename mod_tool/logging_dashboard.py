@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 import queue
-import threading
 import tkinter as tk
 from tkinter import ttk
 
@@ -31,19 +30,22 @@ class LoggingPanel(ttk.Frame):
 
     def start(self) -> None:
         self._running = True
-        threading.Thread(target=self._poll_queue, daemon=True).start()
+        self._poll_queue()
 
     def stop(self) -> None:
         self._running = False
 
     def _poll_queue(self) -> None:
-        while self._running:
-            try:
-                record = self.log_queue.get(timeout=0.5)
-            except queue.Empty:
-                continue
-            message = f"{record.levelname}: {record.getMessage()}\n"
-            self._append(message)
+        if not self._running:
+            return
+        try:
+            while True:
+                record = self.log_queue.get_nowait()
+                message = f"{record.levelname}: {record.getMessage()}\n"
+                self._append(message)
+        except queue.Empty:
+            pass
+        self.after(200, self._poll_queue)
 
     def _append(self, message: str) -> None:
         if not self.winfo_exists():
