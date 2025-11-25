@@ -46,6 +46,12 @@ class ThemeManager:
             "foreground": "#e5e7ff",
             "accent": "#16f2b8",
         },
+        "Invertiert": {
+            "background": "#0b0f16",
+            "foreground": "#f8fafc",
+            "accent": "#fb923c",
+            "invert_text": True,
+        },
         "Sand": {
             "background": "#f5f0e8",
             "foreground": "#1f2937",
@@ -67,6 +73,7 @@ class ThemeManager:
         self.root = root
         self.style = ttk.Style(root)
         self.current_theme = "Hell"
+        self.invert_text = False
         default_font = tkfont.nametofont("TkDefaultFont")
         text_font = tkfont.nametofont("TkTextFont")
         fixed_font = tkfont.nametofont("TkFixedFont")
@@ -114,6 +121,7 @@ class ThemeManager:
     def apply_theme(self, name: str) -> None:
         theme = self.THEMES.get(name, self.THEMES["Hell"])
         self.current_theme = name if name in self.THEMES else "Hell"
+        self.invert_text = bool(theme.get("invert_text", False))
         bg = theme["background"]
         fg = theme["foreground"]
         accent = theme["accent"]
@@ -170,10 +178,13 @@ class ThemeManager:
         if not isinstance(widget, tk.Text):
             raise TypeError("apply_text_theme erwartet ein tk.Text-Widget")
         palette = self.palette
+        invert = self.invert_text or bool(palette.get("invert_text", False))
+        fg = palette["background"] if invert else palette["foreground"]
+        bg = palette["foreground"] if invert else palette["background"]
         widget.configure(
             font=self.fonts["text"],
-            foreground=palette["foreground"],
-            background=palette["background"],
+            foreground=fg,
+            background=bg,
             insertbackground=palette["accent"],
             highlightthickness=1,
             highlightbackground=palette["accent"],

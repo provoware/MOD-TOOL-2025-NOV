@@ -1,8 +1,7 @@
 import tkinter as tk
-import tkinter as tk
 import unittest
 
-from mod_tool.layout import DashboardLayout
+from mod_tool.layout import DashboardLayout, WorkspacePane
 from mod_tool.logging_dashboard import LoggingManager
 from mod_tool.themes import ThemeManager
 
@@ -25,6 +24,29 @@ class LayoutTests(unittest.TestCase):
         layout = DashboardLayout(self.root, themes, logging_manager)
         layout.build(on_start=lambda: None, on_health_check=lambda: None, on_toggle_debug=lambda _=False: None, on_show_index=lambda: None)
         self.assertEqual(self.root.grid_size(), (1, 3))
+
+    def test_core_widgets_have_scrollbars(self):
+        themes = ThemeManager(self.root)
+        logging_manager = LoggingManager(self.root)
+        layout = DashboardLayout(self.root, themes, logging_manager)
+        layout.build(
+            on_start=lambda: None,
+            on_health_check=lambda: None,
+            on_toggle_debug=lambda _=False: None,
+            on_show_index=lambda: None,
+        )
+        self.assertNotEqual(layout.note_panel.text.cget("yscrollcommand"), "")
+        self.assertNotEqual(layout.todo_panel.tree.cget("yscrollcommand"), "")
+
+        pane = WorkspacePane(
+            self.root,
+            title="Test",
+            description="Scroll-Test",
+            logging_manager=logging_manager,
+            status_color_provider=layout.state.rotate_status_colors,
+            theme_manager=themes,
+        )
+        self.assertNotEqual(pane.text.cget("yscrollcommand"), "")
 
 
 if __name__ == "__main__":  # pragma: no cover
