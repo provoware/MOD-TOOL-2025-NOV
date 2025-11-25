@@ -54,6 +54,12 @@ class ThemeManager:
             font=self.fonts["helper"],
         )
         self.style.configure("Status.TLabel", font=self.fonts["status"])
+        self.style.configure("Pane.TLabelframe", padding=8)
+        self.style.configure("Pane.TLabelframe.Label", font=self.fonts["header"])
+        self.style.configure("Note.TLabelframe", padding=8)
+        self.style.configure("Note.TLabelframe.Label", font=self.fonts["header"])
+        self.style.configure("Sidebar.TLabelframe", padding=8)
+        self.style.configure("Sidebar.TLabelframe.Label", font=self.fonts["status"])
 
     def apply_theme(self, name: str) -> None:
         theme = self.THEMES.get(name, self.THEMES["Hell"])
@@ -71,9 +77,19 @@ class ThemeManager:
         self.style.configure("TCheckbutton", background=bg, foreground=fg)
         self.style.map("TButton", background=[("active", accent)], foreground=[("active", fg)])
         self.style.map("TCheckbutton", focuscolor=[("active", accent)])
+        for style_name in ("Pane.TLabelframe", "Note.TLabelframe", "Sidebar.TLabelframe"):
+            self.style.configure(style_name, background=bg, foreground=fg, bordercolor=accent)
+            self.style.configure(f"{style_name}.Label", background=bg, foreground=accent)
+        self.style.configure("Status.TLabel", foreground=accent)
 
         for child in self.root.winfo_children():
             self._propagate_bg(child, bg)
+
+    def status_colors(self, ok: bool) -> tuple[str, str]:
+        palette = self.THEMES.get(self.current_theme, self.THEMES["Hell"])
+        accent = palette["accent"]
+        background = palette["background"]
+        return (accent, background) if ok else ("#c0392b", background)
 
     def _propagate_bg(self, widget: tk.Widget, bg: str) -> None:
         try:

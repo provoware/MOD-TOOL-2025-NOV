@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
-from typing import Callable
+from typing import Callable, Iterable
+
+from .dashboard_state import DashboardState
 
 from .logging_dashboard import LoggingManager
 from .manifest import LayoutSection
@@ -22,6 +24,7 @@ class HeaderControls:
         on_health_check: Callable[[], None],
         on_toggle_debug: Callable[[bool], None],
         on_show_index: Callable[[], None],
+        on_toggle_sidebar: Callable[[], None],
     ) -> None:
         self.frame = ttk.Frame(parent, padding=8)
         self.theme_manager = theme_manager
@@ -29,12 +32,14 @@ class HeaderControls:
         self.on_health_check = on_health_check
         self.on_toggle_debug = on_toggle_debug
         self.on_show_index = on_show_index
+        self.on_toggle_sidebar = on_toggle_sidebar
         self.theme_choice = tk.StringVar(value="Hell")
         self.status_var = tk.StringVar(value="Bereit – Auto-Checks aktiv")
         self.stat_var = tk.StringVar(value="System gesund")
         self.progress_var = tk.IntVar(value=10)
         self.progress_label = tk.StringVar(value="Startroutine: bereit")
         self.debug_enabled = tk.BooleanVar(value=False)
+        self.clock_var = tk.StringVar(value="Zeit wird geladen…")
         self.input_fields: list[ValidatedEntry] = []
 
     def build(self) -> None:
@@ -43,13 +48,19 @@ class HeaderControls:
         )
         ttk.Label(
             self.frame,
-            text="Alles im Blick: Starte Autopilot, prüfe Gesundheit oder wechsle das Theme.",
+            text=(
+                "Alles im Blick: Starte Autopilot, prüfe Gesundheit oder wechsle das Theme. "
+                "Daten bleiben lokal, Eingaben werden geprüft."
+            ),
             style="Helper.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(2, 0))
         ttk.Label(self.frame, textvariable=self.status_var, style="Status.TLabel").grid(
             row=2, column=0, sticky="w"
         )
         ttk.Label(self.frame, textvariable=self.stat_var).grid(row=3, column=0, sticky="w")
+        ttk.Label(self.frame, textvariable=self.clock_var, style="Helper.TLabel").grid(
+            row=4, column=0, sticky="w"
+        )
 
         ttk.Button(
             self.frame,
@@ -73,6 +84,11 @@ class HeaderControls:
             text="Index (Module & Funktionen)",
             command=self.on_show_index,
         ).grid(row=0, column=2, sticky="ew", padx=(8, 0))
+        ttk.Button(
+            self.frame,
+            text="Sidebar ein/aus",
+            command=self.on_toggle_sidebar,
+        ).grid(row=1, column=2, sticky="ew", padx=(8, 0))
 
         ttk.Label(self.frame, text="Theme").grid(row=0, column=3, sticky="e")
         theme_box = ttk.Combobox(
@@ -105,6 +121,7 @@ class HeaderControls:
         )
 
         self.frame.columnconfigure(4, weight=1)
+        self.frame.rowconfigure(5, weight=0)
 
     def _on_theme_change(self, event: object) -> None:  # pragma: no cover - UI binding
         self.theme_manager.apply_theme(self.theme_choice.get())
@@ -129,12 +146,14 @@ class WorkspacePane(ttk.LabelFrame):
         title: str,
         description: str,
         logging_manager: LoggingManager | None = None,
+        status_color_provider: Callable[[bool], tuple[str, str]] | None = None,
     ) -> None:
-        super().__init__(parent, text=title, padding=10, labelanchor="n")
+        super().__init__(parent, text=title, padding=10, labelanchor="n", style="Pane.TLabelframe")
         self.logging_manager = logging_manager
         self.status_var = tk.StringVar(
             value="Bereit: Einfach Text eintragen. Rechtsklick öffnet das Kontextmenü."
         )
+        self.status_color_provider = status_color_provider
         self.description = description
         self._menu = tk.Menu(self, tearoff=False)
         self._menu.add_command(label="Kopieren", command=self.copy_selection)
@@ -165,9 +184,8 @@ class WorkspacePane(ttk.LabelFrame):
         ttk.Button(button_bar, text="Leeren", command=self.clear_text).pack(side=tk.LEFT, padx=(6, 0))
         button_bar.pack(anchor="w", pady=(2, 0))
 
-        ttk.Label(self, textvariable=self.status_var, style="Status.TLabel").pack(
-            anchor="w", pady=(4, 0)
-        )
+        self.status_label = ttk.Label(self, textvariable=self.status_var, style="Status.TLabel")
+        self.status_label.pack(anchor="w", pady=(4, 0))
 
     def _show_menu(self, event: tk.Event[tk.Misc]) -> None:  # pragma: no cover - UI binding
         self._menu.tk_popup(event.x_root, event.y_root)
@@ -205,13 +223,119 @@ class WorkspacePane(ttk.LabelFrame):
     def save_content(self) -> bool:
         content = self.text.get("1.0", tk.END).strip()
         if not content:
-            self.status_var.set("Bitte Text eingeben – leer kann nicht gespeichert werden.")
+            self._set_status("Bitte Text eingeben – leer kann nicht gespeichert werden.", ok=False)
             return False
         preview = content[:60].replace("\n", " ")
-        self.status_var.set("Gespeichert: Inhalt geprüft und angenommen.")
+        self._set_status("Gespeichert: Inhalt geprüft und angenommen.")
         if self.logging_manager:
             self.logging_manager.log_system(f"Pane aktualisiert: {preview}")
         return True
+
+    def _set_status(self, message: str, ok: bool = True) -> None:
+        self.status_var.set(message)
+        if self.status_color_provider and self.status_label:
+            fg, bg = self.status_color_provider(ok)
+            self.status_label.configure(foreground=fg, background=bg)
+
+
+class NotePanel(ttk.LabelFrame):
+    """Dedicated note area with autosave, undo, and status coloring."""
+
+    def __init__(
+        self,
+        parent: tk.Widget,
+        on_save: Callable[[str], bool],
+        on_autosave: Callable[[str], None],
+        status_color_provider: Callable[[bool], tuple[str, str]],
+    ) -> None:
+        super().__init__(parent, text="Notizbereich – speichert automatisch", padding=10, style="Note.TLabelframe")
+        self.on_save = on_save
+        self.on_autosave = on_autosave
+        self.status_color_provider = status_color_provider
+        self.status_var = tk.StringVar(value="Tippe Notizen. Verlassen = Autosave. Rückgängig jederzeit möglich.")
+        self.text = tk.Text(self, height=5, wrap="word", undo=True)
+        self.text.pack(fill=tk.BOTH, expand=True)
+        self.text.bind("<FocusOut>", self._auto_save_event)
+
+        button_bar = ttk.Frame(self)
+        ttk.Button(button_bar, text="Speichern", command=self._save).pack(side=tk.LEFT)
+        ttk.Button(button_bar, text="Rückgängig", command=self._undo).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(button_bar, text="Wiederholen", command=self._redo).pack(side=tk.LEFT, padx=(6, 0))
+        button_bar.pack(anchor="w", pady=(4, 0))
+
+        self.status_label = ttk.Label(self, textvariable=self.status_var, style="Status.TLabel")
+        self.status_label.pack(anchor="w", pady=(4, 0))
+
+    def set_content(self, text: str) -> None:
+        self.text.delete("1.0", tk.END)
+        self.text.insert("1.0", text)
+
+    def get_content(self) -> str:
+        return self.text.get("1.0", tk.END).strip()
+
+    def _save(self) -> None:
+        success = self.on_save(self.get_content())
+        self._update_status(success, "Notiz gespeichert" if success else "Speichern fehlgeschlagen")
+
+    def _auto_save_event(self, event: tk.Event[tk.Misc]) -> None:  # pragma: no cover - UI binding
+        self.on_autosave(self.get_content())
+        self._update_status(True, "Autosave durchgeführt")
+
+    def _undo(self) -> None:  # pragma: no cover - UI binding
+        try:
+            self.text.edit_undo()
+            self._update_status(True, "Rückgängig ausgeführt")
+        except tk.TclError:
+            self._update_status(False, "Nichts zum Zurücknehmen")
+
+    def _redo(self) -> None:  # pragma: no cover - UI binding
+        try:
+            self.text.edit_redo()
+            self._update_status(True, "Wiederholen ausgeführt")
+        except tk.TclError:
+            self._update_status(False, "Nichts zu wiederholen")
+
+    def _update_status(self, ok: bool, message: str) -> None:
+        fg, bg = self.status_color_provider(ok)
+        self.status_label.configure(foreground=fg, background=bg)
+        self.status_var.set(message)
+
+
+class Sidebar(ttk.LabelFrame):
+    """Collapsible sidebar for quick actions and transparency info."""
+
+    def __init__(
+        self,
+        parent: tk.Widget,
+        actions: dict[str, Callable[[], None]],
+        info_provider: Callable[[], Iterable[str]],
+    ) -> None:
+        super().__init__(parent, text="Schnellzugriff & Sicherheit", padding=10, labelanchor="n", style="Sidebar.TLabelframe")
+        self.actions = actions
+        self.info_provider = info_provider
+        self.visible = True
+        for idx, (label, action) in enumerate(self.actions.items()):
+            ttk.Button(self, text=label, command=action).grid(row=idx, column=0, sticky="ew", pady=2)
+        ttk.Label(self, text="Best Practices & Barrierefreiheit:", style="Helper.TLabel").grid(
+            row=len(self.actions), column=0, sticky="w", pady=(8, 0)
+        )
+        self.info_label = ttk.Label(self, text="", wraplength=180, justify=tk.LEFT)
+        self.info_label.grid(row=len(self.actions) + 1, column=0, sticky="w")
+        self.columnconfigure(0, weight=1)
+
+    def refresh_info(self) -> None:
+        tips = list(self.info_provider())
+        if not tips:
+            self.info_label.configure(text="Keine Hinweise verfügbar")
+            return
+        self.info_label.configure(text="\n".join(f"- {tip}" for tip in tips))
+
+    def toggle(self) -> None:
+        self.visible = not self.visible
+        if self.visible:
+            self.grid()
+        else:
+            self.grid_remove()
 
 
 class DashboardLayout:
@@ -222,11 +346,16 @@ class DashboardLayout:
         root: tk.Tk,
         theme_manager: ThemeManager,
         logging_manager: LoggingManager,
+        state: DashboardState,
     ) -> None:
         self.root = root
         self.theme_manager = theme_manager
         self.logging_manager = logging_manager
+        self.state = state
         self.header_controls: HeaderControls | None = None
+        self.sidebar: Sidebar | None = None
+        self.note_panel: NotePanel | None = None
+        self.info_label: ttk.Label | None = None
         self._workspace_sections: list[LayoutSection] = [
             LayoutSection(
                 identifier="pane-1",
@@ -260,22 +389,67 @@ class DashboardLayout:
         on_health_check: Callable[[], None],
         on_toggle_debug: Callable[[bool], None],
         on_show_index: Callable[[], None],
+        on_toggle_sidebar: Callable[[], None],
+        on_choose_project: Callable[[], None],
+        on_save_note: Callable[[str], bool],
+        on_autosave_note: Callable[[str], None],
+        on_backup: Callable[[], None],
+        on_import_notes: Callable[[], None],
+        on_export_notes: Callable[[], None],
+        on_edit_hints: Callable[[], None],
+        info_provider: Callable[[], Iterable[str]],
     ) -> None:
         self.theme_manager.configure_styles()
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(1, weight=1)
 
         self.header_controls = HeaderControls(
-            self.root, self.theme_manager, on_start, on_health_check, on_toggle_debug, on_show_index
+            self.root,
+            self.theme_manager,
+            on_start,
+            on_health_check,
+            on_toggle_debug,
+            on_show_index,
+            on_toggle_sidebar,
         )
         self.header_controls.build()
         self.header_controls.frame.grid(row=0, column=0, sticky="nsew")
 
-        workspace = ttk.Frame(self.root, padding=8)
-        workspace.grid(row=1, column=0, sticky="nsew")
+        workspace_container = ttk.Frame(self.root, padding=8)
+        workspace_container.grid(row=1, column=0, sticky="nsew")
+        workspace_container.columnconfigure(0, weight=0)
+        workspace_container.columnconfigure(1, weight=1)
+        workspace_container.rowconfigure(0, weight=1)
+
+        actions = {
+            "Projekt wählen": on_choose_project,
+            "Projekt prüfen": on_health_check,
+            "Backup erstellen": on_backup,
+            "Notizen importieren": on_import_notes,
+            "Notizen exportieren": on_export_notes,
+            "Hints bearbeiten": on_edit_hints,
+        }
+        self.sidebar = Sidebar(workspace_container, actions=actions, info_provider=info_provider)
+        self.sidebar.grid(row=0, column=0, sticky="nsw", padx=(0, 8))
+
+        workspace = ttk.Frame(workspace_container)
+        workspace.grid(row=0, column=1, sticky="nsew")
+        workspace.columnconfigure(0, weight=1)
+        workspace.rowconfigure(1, weight=1)
+
+        self.note_panel = NotePanel(
+            workspace,
+            on_save=on_save_note,
+            on_autosave=on_autosave_note,
+            status_color_provider=self.state.rotate_status_colors,
+        )
+        self.note_panel.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+
+        pane_grid = ttk.Frame(workspace)
+        pane_grid.grid(row=1, column=0, sticky="nsew")
         for i in range(2):
-            workspace.columnconfigure(i, weight=1, uniform="pane")
-            workspace.rowconfigure(i, weight=1, uniform="pane")
+            pane_grid.columnconfigure(i, weight=1, uniform="pane")
+            pane_grid.rowconfigure(i, weight=1, uniform="pane")
 
         pane_descriptions = [
             "Hier kannst du To-dos sammeln oder einfache Schritte notieren.",
@@ -288,10 +462,11 @@ class DashboardLayout:
         for row in range(2):
             for col in range(2):
                 pane = WorkspacePane(
-                    workspace,
+                    pane_grid,
                     title=f"Bereich {row * 2 + col + 1}",
                     description=pane_descriptions[index],
                     logging_manager=self.logging_manager,
+                    status_color_provider=self.state.rotate_status_colors,
                 )
                 pane.grid(row=row, column=col, padx=6, pady=6, sticky="nsew")
                 index += 1
@@ -305,18 +480,21 @@ class DashboardLayout:
         debug_block.grid(row=0, column=0, padx=6, sticky="nsew")
         log_block = ttk.LabelFrame(footer, text="Logging", padding=6)
         log_block.grid(row=0, column=1, padx=6, sticky="nsew")
-        info_block = ttk.LabelFrame(footer, text="Infos", padding=6)
+        info_block = ttk.LabelFrame(footer, text="Infos", padding=6, style="Note.TLabelframe")
         info_block.grid(row=0, column=2, padx=6, sticky="nsew")
 
         self.logging_manager.attach(log_block)
         ttk.Label(debug_block, text="Debugger-Modus bereit – Eingriffe protokolliert.").pack(anchor="w")
-        ttk.Label(
+        self.info_label = ttk.Label(
             info_block,
             text=(
                 "Tipps: Eingaben prüfen, automatische Selbstheilung aktiv."
                 " Kontextmenü über Rechtsklick öffnet Bearbeitungsoptionen."
             ),
-        ).pack(anchor="w")
+            wraplength=360,
+            style="Helper.TLabel",
+        )
+        self.info_label.pack(anchor="w")
 
     def describe_sections(self) -> list[LayoutSection]:
         """Expose layout sections for manifest creation and accessibility docs."""
@@ -327,6 +505,18 @@ class DashboardLayout:
                 title="Steuerzentrale",
                 purpose="Start, Prüfungen, Theme-Auswahl",
                 accessibility_label="Obere Leiste mit Status- und Kontroll-Buttons",
+            ),
+            LayoutSection(
+                identifier="sidebar",
+                title="Schnellzugriff",
+                purpose="Projektwahl, Backup, Import/Export, Hinweise",
+                accessibility_label="Ein- und ausklappbarer Bereich mit Buttons",
+            ),
+            LayoutSection(
+                identifier="notes",
+                title="Notizbereich",
+                purpose="Autosave-Notizen mit Undo/Redo",
+                accessibility_label="Eingabefeld speichert automatisch beim Verlassen",
             ),
             *self._workspace_sections,
             LayoutSection(

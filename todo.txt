@@ -1,4 +1,5 @@
 # MOD Tool Aufgabenliste
+Fortschritt: 100% (23/23 Aufgaben erledigt)
 Fortschritt: 100% (20/20 Aufgaben erledigt)
 - [x] GUI-Grundgerüst mit Header, 4-Panels und dreigeteilter Fußleiste erstellen.
 - [x] Live-Logging mit Debug-Bereich und klaren Ereignismeldungen einbinden.
@@ -20,3 +21,6 @@ Fortschritt: 100% (20/20 Aufgaben erledigt)
 - [x] Laienfreundliche Startroutine-Hinweise mit direkten Befehlen ergänzen.
 - [x] Debug- und Log-Hinweise automatisch ins Statusfeld spiegeln.
 - [x] Aktivierungsbefehl für virtuelle Umgebung dokumentiert.
+- [x] Sidebar mit Menüführung, Backup-Button und Projektwahl ergänzt.
+- [x] Notiz-Autosave (Fokus-Verlassen + 5-Minuten-Timer) mit Undo/Redo umgesetzt.
+- [x] Import/Export, Hinweis-Editor und farbcodierte Statusanzeigen für Laien erweitert.
