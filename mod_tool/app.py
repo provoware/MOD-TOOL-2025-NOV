@@ -13,6 +13,7 @@ import time
 import tkinter as tk
 from tkinter import ttk
 
+from .bootstrap import Bootstrapper
 from .diagnostics import guarded_action
 from .layout import DashboardLayout
 from .logging_dashboard import LoggingManager
@@ -32,12 +33,14 @@ class ControlCenterApp:
     after they run to keep the UI responsive and reliable.
     """
 
+    def __init__(self, startup_status: dict[str, str] | None = None) -> None:
     def __init__(self) -> None:
         self._root = self._init_root()
         self._theme_manager = ThemeManager(self._root)
         self._logging_manager = LoggingManager(self._root)
         self._plugin_manager = PluginManager("plugins")
         self._self_check = SelfCheck(required_paths=["logs", "plugins", "config"])
+        self._startup_status = startup_status or {}
 
         self._layout = DashboardLayout(self._root, self._theme_manager, self._logging_manager)
         self._attach_validated_inputs()
@@ -69,6 +72,11 @@ class ControlCenterApp:
             self._logging_manager.log_system(f"Pfadprüfung abgeschlossen: {repairs}")
             self._plugin_manager.load_plugins()
             self._logging_manager.log_system(f"Plugins geladen: {self._plugin_manager.loaded_plugins}")
+            for key, value in self._startup_status.items():
+                self._logging_manager.log_system(f"Startroutine {key}: {value}")
+            if self._startup_status:
+                status_line = ", ".join(f"{k}={v}" for k, v in self._startup_status.items())
+                self._layout.header_controls.status_var.set(f"Autostart: {status_line}")
 
         _diagnose()
         threading.Thread(target=self._background_monitor, daemon=True).start()
@@ -87,6 +95,13 @@ class ControlCenterApp:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entry point for the control center with auto-bootstrap."""
+
+    _ = argv or sys.argv[1:]
+    bootstrap = Bootstrapper()
+    startup_status = bootstrap.run()
+    try:
+        ControlCenterApp(startup_status=startup_status).run()
     """CLI entry point for the control center."""
 
     _ = argv or sys.argv[1:]

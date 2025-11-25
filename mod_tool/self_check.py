@@ -9,6 +9,12 @@ from typing import Iterable
 class SelfCheck:
     """Ensures required paths exist and performs lightweight validation."""
 
+    def __init__(self, required_paths: Iterable[pathlib.Path | str], base_path: pathlib.Path | None = None) -> None:
+        base = pathlib.Path(base_path) if base_path else pathlib.Path.cwd()
+        if not base.exists():  # pragma: no cover - defensive guard
+            raise ValueError("Basisverzeichnis fehlt oder ist ungültig")
+        self.base_path = base
+        self.required_paths = [base / pathlib.Path(path) for path in required_paths]
     def __init__(self, required_paths: Iterable[str]) -> None:
         self.required_paths = [pathlib.Path(path) for path in required_paths]
 
@@ -32,6 +38,8 @@ class SelfCheck:
     def run_code_format_check(self) -> bool:
         """Runs a syntax-only compile check to keep code consistent."""
 
+        target = self.base_path / "mod_tool"
+        return compileall.compile_dir(str(target), quiet=1)
         return compileall.compile_dir("mod_tool", quiet=1)
 
     def full_check(self) -> dict[str, str]:

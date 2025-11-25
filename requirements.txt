@@ -1,0 +1,2 @@
+# Abhängigkeiten für MOD Tool
+# Momentan nur Standardbibliothek nötig; Datei wird für automatische Installation genutzt.

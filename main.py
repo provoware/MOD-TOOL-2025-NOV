@@ -1,3 +1,4 @@
+"""Launcher for the MOD Tool control center with auto-bootstrap."""
 """Launcher for the MOD Tool control center."""
 from mod_tool.app import main
 

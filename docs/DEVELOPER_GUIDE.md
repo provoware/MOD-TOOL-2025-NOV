@@ -8,6 +8,9 @@
 - Vollautomatische Prüfungen beim Start: Verzeichnis-Existenz, Syntax-Check via `compileall`.
 
 ## Projektstruktur
+- `main.py`: Startet die GUI über `ControlCenterApp` und ruft die Startroutine auf.
+- `mod_tool/bootstrap.py`: Autostart (virtuelle Umgebung, Abhängigkeits-Installation,
+  Selbstprüfung) mit laienfreundlichem Feedback.
 - `main.py`: Startet die GUI über `ControlCenterApp`.
 - `mod_tool/app.py`: Orchestriert Themes, Logging, Layout, Plugins und Selbstprüfungen.
 - `mod_tool/layout.py`: Baut Header, 2x2-Arbeitsbereich und Fußleiste auf.
@@ -33,6 +36,8 @@
 
 ## Automatische Prüfungen & Codequalität
 - `SelfCheck.run_code_format_check()` ruft `compileall` auf, um Syntaxfehler früh zu melden.
+- `Bootstrapper.run()` erstellt `.venv`, installiert Abhängigkeiten und startet bei Bedarf
+  automatisch in der Umgebung neu.
 - Ergänzende Tools können in einem `Makefile` oder CI angebunden werden (z. B. `ruff`, `black`).
 - Logging-Ausgaben dienen als Live-Debug- und Compliance-Protokoll.
 
@@ -53,3 +58,4 @@ python -m unittest discover
 - Ändere Themes im Header-Dropdown für bestes Kontrastgefühl.
 - Nutze das Eingabefeld im Header: rote Schrift = Eingabe fehlt, dunkle Schrift = gültig.
 - Log-Bereich zeigt alle Aktionen in Echtzeit; bei Fehlern erscheinen klare Meldungen.
+- Startroutine zeigt jeden Schritt im Terminal (virtuelle Umgebung, Installation, Checks).
