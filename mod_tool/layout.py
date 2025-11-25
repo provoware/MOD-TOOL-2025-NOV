@@ -526,8 +526,13 @@ class DashboardLayout:
                     pane, height=8, background=color_primary, highlightthickness=0
                 )
                 color_band.pack(fill=tk.X, padx=6, pady=(0, 6))
-                color_band = tk.Frame(pane, height=8, background=color_primary, highlightthickness=0)
-                color_band.pack(fill=tk.X, padx=-4, pady=(0, 6))
+                accent_band = tk.Frame(
+                    pane,
+                    height=4,
+                    background=color_primary,
+                    highlightthickness=0,
+                )
+                accent_band.pack(fill=tk.X, padx=2, pady=(0, 6))
                 pane.configure(style="Pane.TLabelframe")
                 pane.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
                 pane.configure(labelanchor="n")
