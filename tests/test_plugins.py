@@ -17,6 +17,18 @@ loaded = True
             loaded = manager.load_plugins()
             self.assertIn("demo", loaded)
 
+    def test_load_report_records_outcome(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_dir = pathlib.Path(tmp_dir)
+            bad_plugin = plugin_dir / "broken.py"
+            bad_plugin.write_text("raise RuntimeError('kaputt')\n")
+
+            manager = PluginManager(str(plugin_dir))
+            loaded = manager.load_plugins()
+
+            self.assertEqual([], loaded)
+            self.assertTrue(any("broken.py" in entry for entry in manager.load_report))
+
     def test_load_plugins_handles_errors(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             plugin_dir = pathlib.Path(tmp_dir)

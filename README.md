@@ -29,6 +29,12 @@ Jetzt mit "Klick & Start"-Routine, Debug/Logging-Umschalter und Schnellcheck-Sch
 - Syntax-Check (`compileall`) läuft automatisch über `mod_tool/`.
 - Unittests decken Self-Check, Plugins und das Manifest ab: `python -m unittest discover`.
 - Format-Hinweis: Für optionale Formatierung können `ruff` oder `black` in `.venv` installiert und ausgeführt werden.
+
+## Plugins
+- Beispiel-Plugin liegt unter `plugins/sample_status.py` und meldet sich beim Laden im Log.
+- Eigene Plugins: Neue `.py`-Datei in `plugins/` ablegen und optional eine `on_load()`-Funktion definieren.
+- Der Plugin-Report im Logging zeigt für jedes Plugin den Status (geladen/übersprungen/Fehler) und erstellt den Ordner bei Bedarf automatisch.
+
 ## Starten
 ```bash
 python main.py
