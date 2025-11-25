@@ -22,7 +22,7 @@ class LayoutTests(unittest.TestCase):
         themes = ThemeManager(self.root)
         logging_manager = LoggingManager(self.root)
         layout = DashboardLayout(self.root, themes, logging_manager)
-        layout.build()
+        layout.build(on_start=lambda: None, on_health_check=lambda: None, on_toggle_debug=lambda _=False: None, on_show_index=lambda: None)
         self.assertEqual(self.root.grid_size(), (1, 3))
 
 

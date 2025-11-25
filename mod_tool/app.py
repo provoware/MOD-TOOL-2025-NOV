@@ -25,6 +25,7 @@ from .logging_dashboard import LoggingManager
 from .plugins import PluginManager
 from .self_check import SelfCheck
 from .themes import ThemeManager
+from .tool_index import ToolIndex, ToolIndexView
 
 LOG = logging.getLogger(__name__)
 
@@ -136,6 +137,19 @@ class ControlCenterApp:
             "Debug/Logging-Modus aktiv" if enabled else "Debug/Logging-Modus aus"
         )
 
+    def _open_tool_index(self) -> None:
+        """Open or refresh the live module/function index."""
+
+        @guarded_action("Index-Aktualisierung", LOG)
+        def _render_index() -> None:
+            index = ToolIndex()
+            ToolIndexView(self._root, self._theme_manager, index)
+            self._logging_manager.log_system(
+                "Index geöffnet: Alle Module und Funktionen in einfacher Liste dargestellt"
+            )
+
+        _render_index()
+
     def _build_runtime_manifest(self) -> None:
         """Generate and persist the layout/structure manifest for transparency."""
 
@@ -152,6 +166,7 @@ class ControlCenterApp:
             on_start=self._on_manual_start,
             on_health_check=self._on_manual_health_check,
             on_toggle_debug=self._toggle_debug_mode,
+            on_show_index=self._open_tool_index,
         )
         self._attach_validated_inputs()
         self._theme_manager.apply_theme("Hell")

@@ -21,12 +21,14 @@ class HeaderControls:
         on_start: Callable[[], None],
         on_health_check: Callable[[], None],
         on_toggle_debug: Callable[[bool], None],
+        on_show_index: Callable[[], None],
     ) -> None:
         self.frame = ttk.Frame(parent, padding=8)
         self.theme_manager = theme_manager
         self.on_start = on_start
         self.on_health_check = on_health_check
         self.on_toggle_debug = on_toggle_debug
+        self.on_show_index = on_show_index
         self.theme_choice = tk.StringVar(value="Hell")
         self.status_var = tk.StringVar(value="Bereit – Auto-Checks aktiv")
         self.stat_var = tk.StringVar(value="System gesund")
@@ -57,23 +59,31 @@ class HeaderControls:
             command=lambda: self.on_toggle_debug(self.debug_enabled.get()),
         ).grid(row=2, column=1, sticky="w", padx=(8, 0))
 
-        ttk.Label(self.frame, text="Theme").grid(row=0, column=2, sticky="e")
-        theme_box = ttk.Combobox(self.frame, textvariable=self.theme_choice, values=self.theme_manager.theme_names)
-        theme_box.grid(row=0, column=3, sticky="ew", padx=(8, 0))
+        ttk.Button(
+            self.frame,
+            text="Index (Module & Funktionen)",
+            command=self.on_show_index,
+        ).grid(row=0, column=2, sticky="ew", padx=(8, 0))
+
+        ttk.Label(self.frame, text="Theme").grid(row=0, column=3, sticky="e")
+        theme_box = ttk.Combobox(
+            self.frame, textvariable=self.theme_choice, values=self.theme_manager.theme_names
+        )
+        theme_box.grid(row=0, column=4, sticky="ew", padx=(8, 0))
         theme_box.bind("<<ComboboxSelected>>", self._on_theme_change)
 
         input_field = ValidatedEntry(
             self.frame,
             placeholder="Eingabe (z. B. Pfad, Name) – rot = fehlt, dunkel = ok",
         )
-        input_field.grid(row=1, column=2, columnspan=2, sticky="ew", padx=(8, 0))
+        input_field.grid(row=1, column=2, columnspan=3, sticky="ew", padx=(8, 0))
         self.input_fields.append(input_field)
 
         ttk.Button(self.frame, text="Hilfe & Tipps", command=self._show_help).grid(
-            row=2, column=2, columnspan=2, sticky="ew", padx=(8, 0)
+            row=2, column=2, columnspan=3, sticky="ew", padx=(8, 0)
         )
 
-        self.frame.columnconfigure(3, weight=1)
+        self.frame.columnconfigure(4, weight=1)
 
     def _on_theme_change(self, event: object) -> None:  # pragma: no cover - UI binding
         self.theme_manager.apply_theme(self.theme_choice.get())
@@ -129,12 +139,15 @@ class DashboardLayout:
         on_start: Callable[[], None],
         on_health_check: Callable[[], None],
         on_toggle_debug: Callable[[bool], None],
+        on_show_index: Callable[[], None],
     ) -> None:
         self.theme_manager.configure_styles()
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(1, weight=1)
 
-        self.header_controls = HeaderControls(self.root, self.theme_manager, on_start, on_health_check, on_toggle_debug)
+        self.header_controls = HeaderControls(
+            self.root, self.theme_manager, on_start, on_health_check, on_toggle_debug, on_show_index
+        )
         self.header_controls.build()
         self.header_controls.frame.grid(row=0, column=0, sticky="nsew")
 
