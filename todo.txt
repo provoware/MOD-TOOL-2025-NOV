@@ -1,5 +1,5 @@
 # MOD Tool Aufgabenliste
-Fortschritt: 64% (9/14 Aufgaben erledigt)
+Fortschritt: 73% (11/15 Aufgaben erledigt)
 - [x] GUI-Grundgerüst mit Header, 4-Panels und dreigeteilter Fußleiste erstellen.
 - [x] Live-Logging mit Debug-Bereich und klaren Ereignismeldungen einbinden.
 - [x] Automatische Selbstprüfung (Ordner prüfen/erstellen, Syntax-Check) integrieren.
@@ -9,11 +9,10 @@ Fortschritt: 64% (9/14 Aufgaben erledigt)
 - [x] CI-Workflow für Syntax- und Unittests hinterlegen.
 - [x] Struktur-Manifest und Layout-Manifest hinzufügen (inkl. Barrierefrei-Beschreibung).
 - [x] JSON-Manifest im Projektordner erzeugen und in der Startroutine prüfen.
+- [x] Index-Menü mit Modul- und Funktionsübersicht samt Aktualisierung ergänzen.
+- [x] Optionale Format/Lint-Prüfung (ruff/black) automatisch anstoßen, falls verfügbar.
+- [x] Leitfaden für barrierefreie, modulare Offline-Architektur ergänzen.
 - [ ] Zusätzliche Plugins bereitstellen und dokumentieren.
 - [ ] Barrierefreiheit weiter testen (Screenreader, Tastaturnavigation vertiefen).
-- [ ] Mehr Laien-Hinweise im UI einblenden (Tooltipps, klare Fehlermeldungen).
-- [ ] Automatische Formatierung (black/ruff) optional als Zusatzprüfung ergänzen.
+- [ ] Mehr Laien-Hinweise im UI einblenden (Tooltips, klare Fehlermeldungen).
 - [ ] Fortschrittsanzeige im UI mit Prozentwert anreichern.
-- [ ] Zusätzliche Plugins bereitstellen und dokumentieren.
-- [ ] Barrierefreiheit weiter testen (Screenreader, Tastaturnavigation vertiefen).
-- [ ] Mehr Laien-Hinweise im UI einblenden (Tooltipps, klare Fehlermeldungen).
