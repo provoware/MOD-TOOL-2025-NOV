@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
+from tkinter import font as tkfont
 from typing import Dict, Tuple
 
 
@@ -25,16 +26,34 @@ class ThemeManager:
         self.root = root
         self.style = ttk.Style(root)
         self.current_theme = "Hell"
+        default_font = tkfont.nametofont("TkDefaultFont")
+        self.fonts = {
+            "default": default_font,
+            "text": tkfont.nametofont("TkTextFont"),
+            "fixed": tkfont.nametofont("TkFixedFont"),
+            "header": tkfont.Font(root=root, family="Arial", size=16, weight="bold"),
+            "status": tkfont.Font(root=root, family="Arial", size=11, weight="bold"),
+            "helper": tkfont.Font(
+                root=root,
+                family=default_font.cget("family"),
+                size=default_font.cget("size"),
+            ),
+        }
 
     @property
     def theme_names(self) -> list[str]:
         return list(self.THEMES.keys())
 
     def configure_styles(self) -> None:
-        self.style.configure("Header.TLabel", font=("Arial", 16, "bold"))
-        self.style.configure("TLabel", wraplength=400)
-        self.style.configure("Helper.TLabel", foreground="#1f2933", wraplength=520)
-        self.style.configure("Status.TLabel", font=("Arial", 11, "bold"))
+        self.style.configure("Header.TLabel", font=self.fonts["header"])
+        self.style.configure("TLabel", wraplength=400, font=self.fonts["default"])
+        self.style.configure(
+            "Helper.TLabel",
+            foreground="#1f2933",
+            wraplength=520,
+            font=self.fonts["helper"],
+        )
+        self.style.configure("Status.TLabel", font=self.fonts["status"])
 
     def apply_theme(self, name: str) -> None:
         theme = self.THEMES.get(name, self.THEMES["Hell"])
