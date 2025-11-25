@@ -29,6 +29,8 @@ class LayoutTests(unittest.TestCase):
             on_show_index=lambda: None,
         )
         self.assertEqual(self.root.grid_size(), (1, 3))
+        self.assertGreaterEqual(len(layout.tile_cards), 9)
+        self.assertFalse(layout._details_visible.get())
 
     def test_core_widgets_have_scrollbars(self):
         themes = ThemeManager(self.root)
@@ -72,11 +74,30 @@ class LayoutTests(unittest.TestCase):
         themes = ThemeManager(self.root)
         logging_manager = LoggingManager(self.root)
         layout = DashboardLayout(self.root, themes, logging_manager)
-        layout.build(on_start=lambda: None, on_health_check=lambda: None, on_toggle_debug=lambda _=False: None, on_show_index=lambda: None)
+        layout.build(
+            on_start=lambda: None,
+            on_health_check=lambda: None,
+            on_toggle_debug=lambda _=False: None,
+            on_show_index=lambda: None,
+        )
         before = list(layout.pane_grid.panes())
         layout.rotate_workspace_rows()
         after = list(layout.pane_grid.panes())
         self.assertNotEqual(before, after)
+
+    def test_details_toggle_brings_helpers_back(self):
+        themes = ThemeManager(self.root)
+        logging_manager = LoggingManager(self.root)
+        layout = DashboardLayout(self.root, themes, logging_manager)
+        layout.build(
+            on_start=lambda: None,
+            on_health_check=lambda: None,
+            on_toggle_debug=lambda _=False: None,
+            on_show_index=lambda: None,
+        )
+        layout._toggle_details(True, focus="notes")
+        self.assertTrue(layout._details_visible.get())
+        self.assertTrue(layout.detail_frame.winfo_ismapped())
 
 
 if __name__ == "__main__":  # pragma: no cover

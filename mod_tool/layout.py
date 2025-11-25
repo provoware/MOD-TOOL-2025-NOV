@@ -33,6 +33,7 @@ class HeaderControls:
         on_validate_links: Callable[[], None],
         on_reflow_workspaces: Callable[[], None],
         on_toggle_invert: Callable[[], None],
+        on_theme_changed: Callable[[str, dict[str, str]], None] | None = None,
     ) -> None:
         self.frame = ttk.Frame(parent, padding=8)
         self.theme_manager = theme_manager
@@ -45,6 +46,7 @@ class HeaderControls:
         self.on_validate_links = on_validate_links
         self.on_reflow_workspaces = on_reflow_workspaces
         self.on_toggle_invert = on_toggle_invert
+        self.on_theme_changed = on_theme_changed
         self.theme_choice = tk.StringVar(value=theme_manager.current_theme)
         self.status_var = tk.StringVar(value="Bereit – Auto-Checks aktiv")
         self.stat_var = tk.StringVar(value="System gesund")
@@ -162,6 +164,18 @@ class HeaderControls:
 
     def _on_theme_change(self, event: object) -> None:  # pragma: no cover - UI binding
         self.theme_manager.apply_theme(self.theme_choice.get())
+        self._update_accessibility_status()
+        if self.on_theme_changed:
+            self.on_theme_changed(
+                self.theme_manager.current_theme,
+                self.theme_manager.last_contrast_report,
+            )
+
+    def _update_accessibility_status(self) -> None:
+        report = self.theme_manager.last_contrast_report or self.theme_manager.accessibility_report()
+        self.set_accessibility_status(
+            {"status": report.get("status", "warnung"), "details": report.get("details", "")}
+        )
 
     def _show_help(self) -> None:  # pragma: no cover - UI binding
         self.status_var.set(
@@ -329,6 +343,75 @@ class WorkspacePane(ttk.LabelFrame):
         self.toggle_button.configure(
             text="Bereich öffnen" if self._collapsed.get() else "Bereich minimieren"
         )
+
+
+class ModuleCard(ttk.Frame):
+    """Clickable card matching the reference layout with validated inputs."""
+
+    def __init__(
+        self,
+        parent: tk.Widget,
+        *,
+        title: str,
+        subtitle: str,
+        action: Callable[[], None],
+        primary_color: str,
+        secondary_color: str,
+        theme_manager: ThemeManager,
+        button_label: str = "Öffnen",
+    ) -> None:
+        if not title.strip():
+            raise ValueError("ModuleCard benötigt einen Titel")
+        if not subtitle.strip():
+            raise ValueError("ModuleCard benötigt einen Untertitel")
+        if not callable(action):
+            raise ValueError("action muss aufrufbar sein")
+        super().__init__(parent, padding=4, style="Tile.TFrame")
+        self.action = action
+        self.primary_color = primary_color
+        self.secondary_color = secondary_color
+        self.theme_manager = theme_manager
+
+        card = tk.Frame(
+            self,
+            background=self.secondary_color,
+            highlightthickness=2,
+            highlightbackground=self.primary_color,
+            bd=0,
+            relief=tk.FLAT,
+        )
+        card.pack(fill=tk.BOTH, expand=True)
+
+        header = tk.Label(
+            card,
+            text=title,
+            background=self.secondary_color,
+            foreground=self.primary_color,
+            font=self.theme_manager.fonts["header"],
+        )
+        header.pack(anchor="w", pady=(2, 0))
+
+        body = tk.Label(
+            card,
+            text=subtitle,
+            background=self.secondary_color,
+            foreground=self.theme_manager.palette["foreground"],
+            wraplength=240,
+            justify=tk.LEFT,
+            font=self.theme_manager.fonts["helper"],
+        )
+        body.pack(anchor="w", pady=(0, 6))
+
+        ttk.Button(
+            card,
+            text=button_label,
+            command=self._run_action,
+            style="Tile.TButton",
+            takefocus=True,
+        ).pack(anchor="e", pady=(0, 4))
+
+    def _run_action(self) -> None:  # pragma: no cover - UI binding
+        self.action()
 
 
 class NotePanel(ttk.LabelFrame):
@@ -669,9 +752,13 @@ class DashboardLayout:
         self.genre_panel: GenrePanel | None = None
         self.snippet_panel: SnippetLibraryPanel | None = None
         self.info_label: ttk.Label | None = None
+        self.detail_frame: ttk.Frame | None = None
+        self.tile_board: ttk.Frame | None = None
         self.pane_grid: ttk.Panedwindow | None = None
         self.pane_rows: tuple[ttk.Panedwindow, ttk.Panedwindow] | None = None
         self._workspace_panes: list[WorkspacePane] = []
+        self.tile_cards: list[ModuleCard] = []
+        self._details_visible = tk.BooleanVar(value=False)
         self.module_palette: Sequence[tuple[str, str]] = self.theme_manager.module_palette
         self._workspace_sections: list[LayoutSection] = [
             LayoutSection(
@@ -732,6 +819,8 @@ class DashboardLayout:
         genre_summary_provider: Callable[[], Sequence[str]] | None = None,
         on_add_genre: Callable[[str, str, str], bool] | None = None,
         snippet_store: SnippetStore | None = None,
+        on_change_log_level: Callable[[str], None] | None = None,
+        on_theme_changed: Callable[[str, dict[str, str]], None] | None = None,
     ) -> None:
         self.theme_manager.configure_styles()
         self.root.columnconfigure(0, weight=1)
@@ -759,6 +848,8 @@ class DashboardLayout:
         on_toggle_todo = on_toggle_todo or (lambda _id, _state: None)
         genre_summary_provider = genre_summary_provider or (lambda: ("Keine Einträge",))
         on_add_genre = on_add_genre or (lambda *_args: False)
+        on_change_log_level = on_change_log_level or (lambda _level: None)
+        on_theme_changed = on_theme_changed or (lambda _theme, _report: None)
 
         self.header_controls = HeaderControls(
             self.root,
@@ -772,6 +863,7 @@ class DashboardLayout:
             on_validate_links,
             on_reflow_workspaces,
             on_toggle_invert,
+            on_theme_changed,
         )
         self.header_controls.build()
         report = self.theme_manager.accessibility_report()
@@ -857,8 +949,7 @@ class DashboardLayout:
         workspace.grid(row=0, column=1, sticky="nsew")
         workspace.columnconfigure(0, weight=1)
         workspace.rowconfigure(0, weight=1)
-        workspace.rowconfigure(1, weight=1)
-        workspace.rowconfigure(2, weight=2)
+        workspace.rowconfigure(1, weight=2)
 
         settings_panel = self._build_settings_panel(
             workspace_container,
@@ -869,8 +960,64 @@ class DashboardLayout:
         )
         settings_panel.grid(row=0, column=2, sticky="nsew", padx=(8, 0))
 
+        card_actions = [
+            (
+                "Genreverwaltung",
+                "Romane, Serien oder Settings anlegen und speichern.",
+                on_open_genres_tool,
+            ),
+            (
+                "Archiv",
+                "Schnellzugriff auf Projekte, Backups und gespeicherte Dateien.",
+                on_choose_project,
+            ),
+            (
+                "Dashboard",
+                "Übersicht anzeigen und Status aktualisieren.",
+                on_show_index,
+            ),
+            (
+                "Zufall",
+                "Zufallstools oder Gesundheitscheck starten.",
+                on_health_check,
+            ),
+            (
+                "Vorlagen",
+                "Generatoren und Textmuster öffnen.",
+                on_choose_project,
+            ),
+            (
+                "Text-Templates",
+                "Snippet-Bibliothek einblenden und nutzen.",
+                lambda: self._toggle_details(True, focus="snippets"),
+            ),
+            (
+                "Debug-Log",
+                "Logging-Modus aktivieren und Konsole filtern.",
+                lambda: on_toggle_debug(True),
+            ),
+            (
+                "Notizen",
+                "Editor öffnen, Änderungen speichern und prüfen.",
+                lambda: self._toggle_details(True, focus="notes"),
+            ),
+            (
+                "Import / Export",
+                "Daten sichern oder laden – sofort validiert.",
+                on_export_notes,
+            ),
+        ]
+        self.tile_cards = self._build_tile_board(workspace, card_actions)
+
+        self.detail_frame = ttk.Frame(workspace, style="Main.TFrame")
+        self.detail_frame.grid(row=1, column=0, sticky="nsew", pady=(8, 0))
+        self.detail_frame.columnconfigure(0, weight=1)
+        self.detail_frame.rowconfigure(0, weight=1)
+        self.detail_frame.rowconfigure(1, weight=1)
+        self.detail_frame.rowconfigure(2, weight=2)
+
         self.note_panel = NotePanel(
-            workspace,
+            self.detail_frame,
             on_save=on_save_note,
             on_autosave=on_autosave_note,
             status_color_provider=self.state.rotate_status_colors,
@@ -879,7 +1026,7 @@ class DashboardLayout:
         self.note_panel.grid(row=0, column=0, sticky="nsew", pady=(0, 8))
         self.theme_manager.apply_text_theme(self.note_panel.text)
 
-        helper_container = ttk.Frame(workspace, style="Main.TFrame")
+        helper_container = ttk.Frame(self.detail_frame, style="Main.TFrame")
         helper_container.grid(row=1, column=0, sticky="nsew", pady=(0, 8))
         helper_container.columnconfigure(0, weight=1)
         helper_container.columnconfigure(1, weight=1)
@@ -913,7 +1060,7 @@ class DashboardLayout:
             )
             self.snippet_panel.grid(row=0, column=2, sticky="nsew", padx=(4, 0))
 
-        pane_grid = ttk.Panedwindow(workspace, orient=tk.VERTICAL)
+        pane_grid = ttk.Panedwindow(self.detail_frame, orient=tk.VERTICAL)
         pane_grid.grid(row=2, column=0, sticky="nsew")
         top_row = ttk.Panedwindow(pane_grid, orient=tk.HORIZONTAL)
         bottom_row = ttk.Panedwindow(pane_grid, orient=tk.HORIZONTAL)
@@ -963,6 +1110,8 @@ class DashboardLayout:
                 self._workspace_panes.append(pane)
                 index += 1
 
+        self._toggle_details(False)
+
         footer = ttk.Frame(self.root, padding=8)
         footer.grid(row=2, column=0, sticky="nsew")
         for i in range(3):
@@ -976,6 +1125,20 @@ class DashboardLayout:
         info_block.grid(row=0, column=2, padx=6, sticky="nsew")
 
         self.logging_manager.attach(log_block)
+        self.log_level_var = tk.StringVar(value="INFO")
+        ttk.Label(debug_block, text="Log-Filter (Debug/Info/Warn/Fehler)").pack(anchor="w")
+        level_box = ttk.Combobox(
+            debug_block,
+            values=("DEBUG", "INFO", "WARNING", "ERROR"),
+            textvariable=self.log_level_var,
+            state="readonly",
+        )
+        level_box.pack(fill=tk.X, pady=(0, 6))
+        level_box.bind(
+            "<<ComboboxSelected>>",
+            lambda _event: on_change_log_level(self.log_level_var.get()),
+        )
+        on_change_log_level(self.log_level_var.get())
         ttk.Label(debug_block, text="Debugger-Modus bereit – Eingriffe protokolliert.").pack(anchor="w")
         self.info_label = ttk.Label(
             info_block,
@@ -1073,6 +1236,12 @@ class DashboardLayout:
                 accessibility_label="Eingabefeld speichert automatisch beim Verlassen",
             ),
             LayoutSection(
+                identifier="tile-board",
+                title="Modulkacheln",
+                purpose="Schnellzugriff auf zentrale Funktionen im Kartenraster",
+                accessibility_label="Farbcodiertes Grid mit klaren Buttons und Beschreibungen",
+            ),
+            LayoutSection(
                 identifier="todos",
                 title="To-do-Liste",
                 purpose="Top 10 Aufgaben mit Datum und Status",
@@ -1092,6 +1261,54 @@ class DashboardLayout:
                 accessibility_label="Unterer Bereich mit Debug-Status und Tipps",
             ),
         ]
+
+    def _build_tile_board(self, parent: ttk.Frame, actions: Sequence[tuple[str, str, Callable[[], None]]]) -> list[ModuleCard]:
+        if not actions:
+            raise ValueError("Es werden Aktionen für die Kacheln benötigt")
+
+        board = ttk.Frame(parent, style="Main.TFrame")
+        board.grid(row=0, column=0, sticky="nsew")
+        for col in range(3):
+            board.columnconfigure(col, weight=1)
+
+        palette = self.theme_manager.module_palette or self.module_palette
+        cards: list[ModuleCard] = []
+        for index, (title, subtitle, action) in enumerate(actions):
+            primary, secondary = palette[index % len(palette)]
+            card = ModuleCard(
+                board,
+                title=title,
+                subtitle=subtitle,
+                action=action,
+                primary_color=primary,
+                secondary_color=secondary,
+                theme_manager=self.theme_manager,
+                button_label="Öffnen",
+            )
+            row, col = divmod(index, 3)
+            card.grid(row=row, column=col, sticky="nsew", padx=6, pady=6)
+            board.rowconfigure(row, weight=1)
+            cards.append(card)
+
+        self.tile_board = board
+        return cards
+
+    def _toggle_details(self, visible: bool, *, focus: str | None = None) -> None:
+        self._details_visible.set(bool(visible))
+        if not self.detail_frame:
+            return
+        if visible:
+            self.detail_frame.grid()
+        else:
+            self.detail_frame.grid_remove()
+            return
+
+        if focus == "notes" and self.note_panel:
+            self.note_panel.text.focus_set()
+        elif focus == "snippets" and self.snippet_panel:
+            self.snippet_panel.focus_set()
+        elif focus == "todos" and self.todo_panel:
+            self.todo_panel.tree.focus_set()
 
     def _build_navigation_panel(self, parent: ttk.Frame, nav_items: Sequence[dict[str, object]]) -> None:
         if not nav_items:
