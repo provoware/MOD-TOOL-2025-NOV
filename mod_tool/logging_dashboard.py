@@ -46,6 +46,14 @@ class LoggingPanel(ttk.Frame):
             self._append(message)
 
     def _append(self, message: str) -> None:
+        if not self.winfo_exists():
+            return
+        # ensure UI updates run on the main thread to avoid TclError
+        self.after(0, self._insert_message, message)
+
+    def _insert_message(self, message: str) -> None:
+        if not self.winfo_exists():
+            return
         self.text.configure(state="normal")
         self.text.insert(tk.END, message)
         self.text.configure(state="disabled")

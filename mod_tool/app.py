@@ -61,6 +61,7 @@ class ControlCenterApp:
         self._zoom_manager = ZoomManager(self._root, self._theme_manager.fonts)
         self._autosave_job: int | None = None
         self._hint_job: int | None = None
+        self._large_text = tk.BooleanVar(value=False)
 
         self._layout = DashboardLayout(
             self._root,
@@ -147,9 +148,12 @@ class ControlCenterApp:
         def _diagnose() -> None:
             structure = self._state.ensure_project_structure()
             repairs = self._self_check.full_check()
+            friendly_lines = self._self_check.human_summary(repairs)
             for path, status in structure.items():
                 self._logging_manager.log_system(f"Projektpfad geprüft: {path} -> {status}")
             self._logging_manager.log_system(f"Pfad- & Syntaxprüfung: {repairs}")
+            for line in friendly_lines:
+                self._logging_manager.log_system(f"Kurzfassung: {line}")
             loaded = self._plugin_manager.load_plugins()
             self._logging_manager.log_system(
                 f"Plugins geladen ({len(loaded)}): {', '.join(loaded) if loaded else 'keine Module gefunden'}"
@@ -171,6 +175,15 @@ class ControlCenterApp:
             tests_detail = repairs.get("tests_info")
             if tests_detail:
                 self._logging_manager.log_system(f"Testdetails: {tests_detail}")
+            overall = repairs.get("gesamt", "warnung")
+            status_text = {
+                "ok": "Alles ok – Start frei",
+                "warnung": "Hinweise prüfen – nichts blockiert",
+                "fehler": "Bitte prüfen – kritischer Fehler",
+            }.get(overall, "Hinweise prüfen")
+            self._layout.set_status_light(overall, status_text)
+            if friendly_lines:
+                self._layout.header_controls.status_var.set(friendly_lines[0])
             progress, note = self._calculate_progress(repairs)
             self._layout.header_controls.set_progress(progress, note)
             self._log_guidance_notes()
@@ -336,6 +349,14 @@ class ControlCenterApp:
             "Debug/Logging-Modus aktiv" if enabled else "Debug/Logging-Modus aus"
         )
 
+    def _toggle_large_text(self, enabled: bool) -> None:
+        self._large_text.set(enabled)
+        target_scale = 1.5 if enabled else 1.0
+        scale = self._zoom_manager.set_scale(target_scale)
+        self._layout.header_controls.status_var.set(
+            f"Großtext {'aktiv' if enabled else 'aus'} – Darstellung {int(scale*100)}%"
+        )
+
     def _open_tool_index(self) -> None:
         """Open or refresh the live module/function index."""
 
@@ -385,6 +406,7 @@ class ControlCenterApp:
             on_health_check=self._on_manual_health_check,
             on_toggle_debug=self._toggle_debug_mode,
             on_show_index=self._open_tool_index,
+            on_toggle_large_text=self._toggle_large_text,
             on_toggle_sidebar=self._toggle_sidebar,
             on_save_note=self._save_notes,
             on_autosave_note=lambda text: self._autosave_notes(text, source="Feld verlassen"),

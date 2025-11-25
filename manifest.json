@@ -7,6 +7,7 @@
       "Abhängigkeiten automatisch installieren",
       "Pflichtordner reparieren",
       "Syntax- und Format-Checks anstoßen",
+      "Qualitätssuite (pytest) kurz prüfen",
       "Schnelltests ausführen",
       "Plugins laden"
     ],
@@ -18,8 +19,9 @@
     ],
     "accessibility": {
       "screenreader": "Klare Beschriftungen und Status-Labels für jede Zone",
-      "kontrast": "Mehrere Farb-Themes inklusive Hochkontrast",
-      "tastatur": "Steuerung per Tab-Reihenfolge von oben nach unten"
+      "kontrast": "Mehrere Farb-Themes inklusive Hochkontrast und Neon mit geprüftem Kontrast",
+      "tastatur": "Steuerung per Tab-Reihenfolge von oben nach unten",
+      "lesbarkeit": "Großtext-Schalter (150 %) und Zoom per Strg + Mausrad"
     }
   },
   "layout_manifest": {
@@ -67,7 +69,8 @@
       "Dunkel",
       "Kontrast",
       "Blau",
-      "Wald"
+      "Wald",
+      "Neon"
     ]
   }
 }

@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import tkinter as tk
+from pathlib import Path
 from tkinter import ttk
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Sequence
 
 from .dashboard_state import DashboardState
 
@@ -24,6 +25,7 @@ class HeaderControls:
         on_health_check: Callable[[], None],
         on_toggle_debug: Callable[[bool], None],
         on_show_index: Callable[[], None],
+        on_toggle_large_text: Callable[[bool], None],
         on_toggle_sidebar: Callable[[], None],
     ) -> None:
         self.frame = ttk.Frame(parent, padding=8)
@@ -32,6 +34,7 @@ class HeaderControls:
         self.on_health_check = on_health_check
         self.on_toggle_debug = on_toggle_debug
         self.on_show_index = on_show_index
+        self.on_toggle_large_text = on_toggle_large_text
         self.on_toggle_sidebar = on_toggle_sidebar
         self.theme_choice = tk.StringVar(value="Hell")
         self.status_var = tk.StringVar(value="Bereit – Auto-Checks aktiv")
@@ -59,7 +62,7 @@ class HeaderControls:
         )
         ttk.Label(self.frame, textvariable=self.stat_var).grid(row=3, column=0, sticky="w")
         ttk.Label(self.frame, textvariable=self.clock_var, style="Helper.TLabel").grid(
-            row=4, column=0, sticky="w"
+            row=5, column=0, sticky="w"
         )
 
         ttk.Button(
@@ -78,6 +81,14 @@ class HeaderControls:
             variable=self.debug_enabled,
             command=lambda: self.on_toggle_debug(self.debug_enabled.get()),
         ).grid(row=2, column=1, sticky="w", padx=(8, 0))
+
+        self.large_text_enabled = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            self.frame,
+            text="Großtext (150%)",
+            variable=self.large_text_enabled,
+            command=lambda: self.on_toggle_large_text(self.large_text_enabled.get()),
+        ).grid(row=3, column=1, sticky="w", padx=(8, 0))
 
         ttk.Button(
             self.frame,
@@ -115,9 +126,9 @@ class HeaderControls:
             self.frame,
             maximum=100,
             variable=self.progress_var,
-        ).grid(row=3, column=1, columnspan=3, sticky="ew", padx=(8, 0), pady=(4, 0))
+        ).grid(row=4, column=1, columnspan=3, sticky="ew", padx=(8, 0), pady=(4, 0))
         ttk.Label(self.frame, textvariable=self.progress_label).grid(
-            row=3, column=4, sticky="w", padx=(8, 0)
+            row=4, column=4, sticky="w", padx=(8, 0)
         )
 
         self.frame.columnconfigure(4, weight=1)
@@ -346,16 +357,22 @@ class DashboardLayout:
         root: tk.Tk,
         theme_manager: ThemeManager,
         logging_manager: LoggingManager,
-        state: DashboardState,
+        state: DashboardState | None = None,
     ) -> None:
         self.root = root
         self.theme_manager = theme_manager
         self.logging_manager = logging_manager
-        self.state = state
+        self.state = state or DashboardState(base_path=Path("logs"))
         self.header_controls: HeaderControls | None = None
         self.sidebar: Sidebar | None = None
         self.note_panel: NotePanel | None = None
         self.info_label: ttk.Label | None = None
+        self.module_palette: Sequence[tuple[str, str]] = (
+            ("#1fb6ff", "#e0f7ff"),  # Modul 1: Blau/Türkis
+            ("#7c3aed", "#f3e8ff"),  # Modul 2: Violett
+            ("#16a34a", "#e6ffed"),  # Modul 3: Grün
+            ("#f97316", "#fff3e6"),  # Modul 4: Orange
+        )
         self._workspace_sections: list[LayoutSection] = [
             LayoutSection(
                 identifier="pane-1",
@@ -389,19 +406,34 @@ class DashboardLayout:
         on_health_check: Callable[[], None],
         on_toggle_debug: Callable[[bool], None],
         on_show_index: Callable[[], None],
-        on_toggle_sidebar: Callable[[], None],
-        on_choose_project: Callable[[], None],
-        on_save_note: Callable[[str], bool],
-        on_autosave_note: Callable[[str], None],
-        on_backup: Callable[[], None],
-        on_import_notes: Callable[[], None],
-        on_export_notes: Callable[[], None],
-        on_edit_hints: Callable[[], None],
-        info_provider: Callable[[], Iterable[str]],
+        on_toggle_large_text: Callable[[bool], None] | None = None,
+        on_toggle_sidebar: Callable[[], None] | None = None,
+        on_choose_project: Callable[[], None] | None = None,
+        on_save_note: Callable[[str], bool] | None = None,
+        on_autosave_note: Callable[[str], None] | None = None,
+        on_backup: Callable[[], None] | None = None,
+        on_import_notes: Callable[[], None] | None = None,
+        on_export_notes: Callable[[], None] | None = None,
+        on_edit_hints: Callable[[], None] | None = None,
+        info_provider: Callable[[], Iterable[str]] | None = None,
     ) -> None:
         self.theme_manager.configure_styles()
         self.root.columnconfigure(0, weight=1)
+        # Accessibility sizing: clear header/footer heights and generous sidebar width
+        self.root.rowconfigure(0, weight=0, minsize=72)
         self.root.rowconfigure(1, weight=1)
+        self.root.rowconfigure(2, weight=0, minsize=48)
+
+        on_toggle_large_text = on_toggle_large_text or (lambda _state: None)
+        on_toggle_sidebar = on_toggle_sidebar or (lambda: None)
+        on_choose_project = on_choose_project or (lambda: None)
+        on_save_note = on_save_note or (lambda _text: True)
+        on_autosave_note = on_autosave_note or (lambda _text: None)
+        on_backup = on_backup or (lambda: None)
+        on_import_notes = on_import_notes or (lambda: None)
+        on_export_notes = on_export_notes or (lambda: None)
+        on_edit_hints = on_edit_hints or (lambda: None)
+        info_provider = info_provider or (lambda: ("Best Practices folgen noch",))
 
         self.header_controls = HeaderControls(
             self.root,
@@ -410,6 +442,7 @@ class DashboardLayout:
             on_health_check,
             on_toggle_debug,
             on_show_index,
+            on_toggle_large_text,
             on_toggle_sidebar,
         )
         self.header_controls.build()
@@ -417,7 +450,7 @@ class DashboardLayout:
 
         workspace_container = ttk.Frame(self.root, padding=8)
         workspace_container.grid(row=1, column=0, sticky="nsew")
-        workspace_container.columnconfigure(0, weight=0)
+        workspace_container.columnconfigure(0, weight=0, minsize=220)
         workspace_container.columnconfigure(1, weight=1)
         workspace_container.rowconfigure(0, weight=1)
 
@@ -461,6 +494,7 @@ class DashboardLayout:
         index = 0
         for row in range(2):
             for col in range(2):
+                color_primary, color_bg = self.module_palette[index % len(self.module_palette)]
                 pane = WorkspacePane(
                     pane_grid,
                     title=f"Bereich {row * 2 + col + 1}",
@@ -468,7 +502,15 @@ class DashboardLayout:
                     logging_manager=self.logging_manager,
                     status_color_provider=self.state.rotate_status_colors,
                 )
-                pane.grid(row=row, column=col, padx=6, pady=6, sticky="nsew")
+                color_band = tk.Frame(
+                    pane, height=8, background=color_primary, highlightthickness=0
+                )
+                color_band.pack(fill=tk.X, padx=6, pady=(0, 6))
+                pane.configure(style="Pane.TLabelframe")
+                pane.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
+                pane.configure(labelanchor="n")
+                pane.text.configure(highlightthickness=2, highlightbackground=color_bg)
+                pane.status_label.configure(background=color_bg)
                 index += 1
 
         footer = ttk.Frame(self.root, padding=8)
@@ -495,6 +537,31 @@ class DashboardLayout:
             style="Helper.TLabel",
         )
         self.info_label.pack(anchor="w")
+
+        self.status_var = tk.StringVar(value="Ampel: alles ok – Klick für Details")
+        self.status_indicator = tk.Label(
+            info_block,
+            textvariable=self.status_var,
+            background="#16a34a",
+            foreground="#ffffff",
+            padx=10,
+            pady=6,
+            relief=tk.GROOVE,
+            cursor="hand2",
+        )
+        self.status_indicator.pack(fill=tk.X, pady=(6, 0))
+
+    def set_status_light(self, level: str, message: str) -> None:
+        """Update the footer status light with warning/error levels."""
+
+        palette = {
+            "ok": "#16a34a",
+            "warnung": "#f59e0b",
+            "fehler": "#dc2626",
+        }
+        color = palette.get(level, "#2563eb")
+        self.status_var.set(message)
+        self.status_indicator.configure(background=color)
 
     def describe_sections(self) -> list[LayoutSection]:
         """Expose layout sections for manifest creation and accessibility docs."""

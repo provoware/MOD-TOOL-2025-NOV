@@ -120,10 +120,9 @@ class Bootstrapper:
         """Run self-healing checks for folders and code format."""
 
         status = self.self_check.full_check()
-        for key, value in status.items():
-            self._feedback(f"Selbstprüfung {key}: {value}")
-        ok_states = {"vorhanden", "automatisch erstellt", "ok", "übersprungen"}
-        return "ok" if all(val in ok_states for val in status.values()) else "warnung"
+        for line in self.self_check.human_summary(status):
+            self._feedback(f"Selbstprüfung: {line}")
+        return status.get("gesamt", "warnung")
 
     def maybe_relaunch_in_venv(self) -> None:
         """Restart the process inside the venv for a seamless user flow."""

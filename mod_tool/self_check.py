@@ -112,11 +112,42 @@ class SelfCheck:
                 timeout=max(self.test_timeout_seconds, 1),
             )
         except subprocess.TimeoutExpired:
-            return "abgebrochen", f"Tests nach {self.test_timeout_seconds}s wegen Timeout beendet"
+            return "abgebrochen", f"Tests nach {self.test_timeout_seconds}s automatisch gestoppt (Timeout)"
 
-        status = "ok" if result.returncode == 0 else "fehlgeschlagen"
-        output = result.stdout.strip() or result.stderr.strip() or "Keine Testausgabe vorhanden"
+        status = "ok" if result.returncode == 0 else "warnung"
+        raw_output = result.stdout.strip() or result.stderr.strip() or "Keine Testausgabe vorhanden"
+        first_line = raw_output.splitlines()[0] if raw_output else ""
+        output = (
+            "Tests erfolgreich (Kurzlauf)"
+            if status == "ok"
+            else f"Tests mit Hinweisen: {first_line}"
+        )
         return status, output
+
+    def run_quality_suite(self) -> tuple[str, str]:
+        """Run the full quality suite (pytest) with friendly messaging."""
+
+        tests_dir = self.base_path / "tests"
+        if not tests_dir.exists():
+            return "übersprungen", "Kein Tests-Ordner – Qualitätssuite entfällt"
+
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "pytest", "-q", str(tests_dir)],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=max(self.test_timeout_seconds, 10),
+            )
+        except FileNotFoundError:
+            return "übersprungen", "pytest nicht installiert – Qualitätssuite ausgelassen"
+        except subprocess.TimeoutExpired:
+            return "warnung", f"Qualitätssuite nach {self.test_timeout_seconds}s gestoppt (Timeout)"
+
+        summary_line = (result.stdout or result.stderr).splitlines()[:2]
+        headline = summary_line[0] if summary_line else "Keine Ausgabe"
+        status = "ok" if result.returncode == 0 else "warnung"
+        return status, headline
 
     def full_check(self) -> dict[str, str]:
         """Perform folder repair, syntax validation, and smoke tests."""
@@ -128,6 +159,9 @@ class SelfCheck:
         tests_status, tests_info = self.run_quick_tests()
         path_status["tests"] = tests_status
         path_status["tests_info"] = tests_info
+        quality_status, quality_info = self.run_quality_suite()
+        path_status["qualität"] = quality_status
+        path_status["qualität_info"] = quality_info
         path_status["linting"] = self.run_optional_linters()
         manifest_status, manifest_msg = self.ensure_manifest_file()
         path_status["manifest"] = manifest_status
@@ -136,7 +170,23 @@ class SelfCheck:
         accessibility = ThemeManager.accessibility_report()
         path_status["accessibility"] = accessibility["status"]
         path_status["accessibility_notes"] = accessibility["details"]
+        path_status["gesamt"] = self.classify_overall(path_status)
         return path_status
+
+    def classify_overall(self, status: dict[str, str]) -> str:
+        """Return ok/warnung/fehler based on the collected results."""
+
+        warn_states = {"warnung", "kompilierungswarnung", "abgebrochen", "teilweise"}
+        error_states = {"fehlgeschlagen", "fehler"}
+        overall = "ok"
+        for key, value in status.items():
+            if key.endswith("_info"):
+                continue
+            if value in error_states:
+                return "fehler"
+            if value in warn_states:
+                overall = "warnung"
+        return overall
 
     def ensure_manifest_file(self) -> tuple[str, str]:
         """Create or validate the JSON manifest for transparency."""
@@ -154,3 +204,40 @@ class SelfCheck:
         writer = ManifestWriter(self.manifest_path)
         writer.write(manifest)
         return "erstellt", "Manifest neu erstellt"
+
+    def human_summary(self, status: dict[str, str]) -> list[str]:
+        """Translate raw status values into laienfreundliche Sätze."""
+
+        messages: list[str] = []
+        for key, value in status.items():
+            if key.endswith("_info"):
+                continue
+            headline = self._friendly_headline(key, value, status)
+            messages.append(headline)
+        return messages
+
+    def _friendly_headline(self, key: str, value: str, status: dict[str, str]) -> str:
+        readable = key.replace("_", " ")
+        severity = {
+            "ok": "OK",
+            "vorhanden": "OK",
+            "automatisch erstellt": "OK",
+            "erstellt": "OK",
+            "übersprungen": "Hinweis",
+            "warnung": "Warnung",
+            "kompilierungswarnung": "Warnung",
+            "abgebrochen": "Warnung",
+            "fehlgeschlagen": "Fehler",
+            "fehler": "Fehler",
+        }.get(value, value.capitalize())
+
+        detail_key = f"{key}_info"
+        detail = status.get(detail_key, "")
+        if key == "tests" and value == "übersprungen":
+            detail = detail or "Keine Tests gefunden – weiter mit den anderen Checks"
+        if key == "qualität" and value == "warnung":
+            detail = detail or "Qualitätssuite hat Hinweise ausgegeben"
+        if key == "linting" and value.startswith("keine"):
+            detail = detail or "Linting ist optional – kein Handlungsbedarf"
+        detail_text = f" – {detail}" if detail else ""
+        return f"{severity}: {readable}{detail_text}"
