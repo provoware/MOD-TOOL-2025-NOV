@@ -56,6 +56,14 @@ class SelfCheckTests(unittest.TestCase):
             self.assertEqual(status, "abgebrochen")
             self.assertIn("Timeout", info)
 
+    def test_classify_overall_warn_and_error(self):
+        check = SelfCheck([pathlib.Path("logs")])
+        warning_status = check.classify_overall({"tests": "warnung", "linting": "ok"})
+        error_status = check.classify_overall({"tests": "fehlgeschlagen", "linting": "ok"})
+
+        self.assertEqual(warning_status, "warnung")
+        self.assertEqual(error_status, "fehler")
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

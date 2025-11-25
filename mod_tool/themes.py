@@ -12,22 +12,55 @@ class ThemeManager:
 
     THEMES = {
         "Hell": {
-            "background": "#f6f6f6",
-            "foreground": "#111827",
+            "background": "#f7f9fb",
+            "foreground": "#0f172a",
             "accent": "#1d4ed8",
         },
-        "Dunkel": {"background": "#1f2933", "foreground": "#f7f7f7", "accent": "#63b3ed"},
-        "Kontrast": {"background": "#000000", "foreground": "#ffffff", "accent": "#ffd166"},
-        "Blau": {"background": "#e6f0ff", "foreground": "#102a43", "accent": "#2c5282"},
-        "Wald": {"background": "#0b3d2e", "foreground": "#e5f4ec", "accent": "#40e0d0"},
-        "Neon Blau": {"background": "#0a0f1f", "foreground": "#e0e7ff", "accent": "#22d3ee"},
-        "Neon Pink": {"background": "#0a0f1f", "foreground": "#e0e7ff", "accent": "#f472b6"},
-        "Dunkel": {"background": "#0f172a", "foreground": "#e5e7eb", "accent": "#22d3ee"},
-        "Kontrast": {"background": "#000000", "foreground": "#ffffff", "accent": "#fbbf24"},
-        "Sand": {"background": "#f3f0e6", "foreground": "#1f2937", "accent": "#92400e"},
-        "Marine": {"background": "#0b1b2b", "foreground": "#e0f2fe", "accent": "#38bdf8"},
-        "Wald": {"background": "#0b3d2e", "foreground": "#e5f4ec", "accent": "#34d399"},
-        "Pastell": {"background": "#eef2ff", "foreground": "#111827", "accent": "#7c3aed"},
+        "Dunkel": {
+            "background": "#0f172a",
+            "foreground": "#e5e7eb",
+            "accent": "#22d3ee",
+        },
+        "Kontrast": {
+            "background": "#000000",
+            "foreground": "#ffffff",
+            "accent": "#fbbf24",
+        },
+        "Marine": {
+            "background": "#0b1b2b",
+            "foreground": "#e0f2fe",
+            "accent": "#38bdf8",
+        },
+        "Wald": {
+            "background": "#0b3d2e",
+            "foreground": "#e8fff5",
+            "accent": "#34d399",
+        },
+        "Pastell": {
+            "background": "#eef2ff",
+            "foreground": "#1f2937",
+            "accent": "#7c3aed",
+        },
+        "Neon": {
+            "background": "#0a0f1f",
+            "foreground": "#e5e7ff",
+            "accent": "#16f2b8",
+        },
+        "Sand": {
+            "background": "#f5f0e8",
+            "foreground": "#1f2937",
+            "accent": "#7c2d12",
+        },
+        "Graphit": {
+            "background": "#1c1c1e",
+            "foreground": "#f5f5f7",
+            "accent": "#64d2ff",
+        },
+        "Solar": {
+            "background": "#112b3c",
+            "foreground": "#f1f5f9",
+            "accent": "#f59e0b",
+        },
     }
 
     def __init__(self, root: tk.Tk) -> None:
@@ -177,6 +210,9 @@ class ThemeManager:
     @classmethod
     def accessibility_report(cls, minimum_ratio: float = 4.5) -> Dict[str, str]:
         """Validate all palettes against WCAG contrast guidance."""
+
+        if minimum_ratio <= 0:
+            raise ValueError("minimum_ratio muss größer als 0 sein")
 
         warnings: list[str] = []
         for name, palette in cls.THEMES.items():

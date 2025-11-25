@@ -1,4 +1,5 @@
 import tkinter as tk
+import tkinter as tk
 import unittest
 
 from mod_tool.layout import DashboardLayout
