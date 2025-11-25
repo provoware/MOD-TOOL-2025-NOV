@@ -90,6 +90,10 @@ class ControlCenterApp:
             self._logging_manager.log_system(
                 f"Plugins geladen ({len(loaded)}): {', '.join(loaded) if loaded else 'keine Module gefunden'}"
             )
+            if self._plugin_manager.load_report:
+                self._logging_manager.log_system(
+                    "Plugin-Report: " + " | ".join(self._plugin_manager.load_report)
+                )
             for key, value in self._startup_status.items():
                 self._logging_manager.log_system(f"Startroutine {key}: {value}")
             if self._startup_status:

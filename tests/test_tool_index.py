@@ -16,6 +16,11 @@ class ToolIndexTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ToolIndex(base_path=pathlib.Path("/pfad/gibt/es/nicht"))
 
+    def test_collect_index_rejects_invalid_module_names(self):
+        index = ToolIndex(base_path=pathlib.Path(__file__).resolve().parent.parent / "mod_tool")
+        with self.assertRaises(ValueError):
+            index.collect_index(modules=["", 123])
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

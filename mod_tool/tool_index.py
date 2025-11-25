@@ -40,6 +40,9 @@ class ToolIndex:
     def collect_index(self, modules: Iterable[str] | None = None) -> list[IndexEntry]:
         """Return sorted index entries for package modules."""
 
+        if modules is not None and not all(isinstance(item, str) and item.strip() for item in modules):
+            raise ValueError("Module-Liste muss Strings mit Inhalt enthalten")
+
         discovered = modules or self._discover_modules()
         entries: list[IndexEntry] = []
         for module_name in discovered:
