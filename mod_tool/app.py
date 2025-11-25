@@ -15,6 +15,7 @@ import tkinter as tk
 
 from .bootstrap import Bootstrapper
 from .diagnostics import guarded_action
+from .guidance import StartupGuide
 from .layout import DashboardLayout
 from .manifest import (
     ManifestWriter,
@@ -49,6 +50,7 @@ class ControlCenterApp:
             required_paths=["logs", "plugins", "config"],
             manifest_path=self._manifest_path,
         )
+        self._startup_guide = StartupGuide(str(self._self_check.base_path / ".venv"))
         self._startup_status = startup_status or {}
         self._debug_mode = tk.BooleanVar(value=False)
         self._monitor_started = False
@@ -106,6 +108,7 @@ class ControlCenterApp:
             )
             progress, note = self._calculate_progress(repairs)
             self._layout.header_controls.set_progress(progress, note)
+            self._log_guidance_notes()
 
         try:
             _diagnose()
@@ -168,6 +171,15 @@ class ControlCenterApp:
         writer = ManifestWriter(self._manifest_path)
         manifest_path = writer.write(manifest)
         self._logging_manager.log_system(f"Manifest aktualisiert: {manifest_path}")
+
+    def _log_guidance_notes(self) -> None:
+        """Spielt laienfreundliche Hinweise ins Log und Statusfeld ein."""
+
+        tips = self._startup_guide.render_for_logging()
+        for tip in tips:
+            self._logging_manager.log_system(f"Hinweis: {tip}")
+        if tips and self._layout.header_controls:
+            self._layout.header_controls.status_var.set(tips[0])
 
     def _calculate_progress(self, status: dict[str, str]) -> tuple[int, str]:
         ok_states = {"ok", "vorhanden", "automatisch erstellt", "übersprungen", "erstellt"}
