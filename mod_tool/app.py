@@ -26,6 +26,7 @@ from .plugins import PluginManager
 from .self_check import SelfCheck
 from .themes import ThemeManager
 from .tool_index import ToolIndex, ToolIndexView
+from .zoom import ZoomManager
 
 LOG = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ class ControlCenterApp:
         self._startup_status = startup_status or {}
         self._debug_mode = tk.BooleanVar(value=False)
         self._monitor_started = False
+        self._zoom_manager = ZoomManager(self._root, self._theme_manager.fonts)
 
         self._layout = DashboardLayout(
             self._root,
@@ -181,12 +183,19 @@ class ControlCenterApp:
             on_show_index=self._open_tool_index,
         )
         self._attach_validated_inputs()
+        self._zoom_manager.bind_shortcuts(status_callback=self._set_status)
         self._theme_manager.apply_theme("Hell")
         self._logging_manager.start_logging()
         self._logging_manager.log_system("Klick&Start-Routine bereit – alles automatisiert")
+        self._set_status("Zoom bereit: Strg + Mausrad verändert Schriftgrößen barrierefrei.")
         self._build_runtime_manifest()
         self._run_startup_sequence()
         self._root.mainloop()
+
+    def _set_status(self, message: str) -> None:
+        if self._layout.header_controls:
+            self._layout.header_controls.status_var.set(message)
+        self._logging_manager.log_system(message)
 
 
 def main(argv: list[str] | None = None) -> int:

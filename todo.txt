@@ -1,5 +1,5 @@
 # MOD Tool Aufgabenliste
-Fortschritt: 93% (14/15 Aufgaben erledigt)
+Fortschritt: 94% (16/17 Aufgaben erledigt)
 - [x] GUI-Grundgerüst mit Header, 4-Panels und dreigeteilter Fußleiste erstellen.
 - [x] Live-Logging mit Debug-Bereich und klaren Ereignismeldungen einbinden.
 - [x] Automatische Selbstprüfung (Ordner prüfen/erstellen, Syntax-Check) integrieren.
@@ -15,4 +15,5 @@ Fortschritt: 93% (14/15 Aufgaben erledigt)
 - [x] Barrierefreiheit weiter testen (Screenreader, Tastaturnavigation vertiefen).
 - [x] Mehr Laien-Hinweise im UI einblenden (Tooltips, klare Fehlermeldungen).
 - [x] Fortschrittsanzeige im UI mit Prozentwert anreichern.
+- [x] Dynamische Zoomsteuerung (Strg + Mausrad) mit skalierenden Schriften ergänzen.
 - [ ] Zusätzliche Plugins bereitstellen und dokumentieren.
