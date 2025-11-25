@@ -56,3 +56,5 @@ Fortschritt: 100% (39/39 Aufgaben erledigt)
 - [x] Kombinationsleitfaden für System/Modul/UI-Schichten mit Laienhinweisen dokumentiert.
 - [x] Pip-Check für Abhängigkeiten in die Startroutine eingebaut und klar protokolliert.
 - [x] Selbstcheck um Abhängigkeitsvalidierung samt Unit-Tests erweitert.
+- [x] Snippet-Bibliothek als Modul mit Import/Export, Clipboard und Validierungen integriert.
+- [x] Zusätzliche Unit-Tests für das Snippet-Archiv zur Qualitätssicherung ergänzt.
