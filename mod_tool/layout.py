@@ -25,6 +25,7 @@ class HeaderControls:
         on_health_check: Callable[[], None],
         on_toggle_debug: Callable[[bool], None],
         on_show_index: Callable[[], None],
+        on_toggle_large_text: Callable[[bool], None],
         on_toggle_sidebar: Callable[[], None],
     ) -> None:
         self.frame = ttk.Frame(parent, padding=8)
@@ -33,6 +34,7 @@ class HeaderControls:
         self.on_health_check = on_health_check
         self.on_toggle_debug = on_toggle_debug
         self.on_show_index = on_show_index
+        self.on_toggle_large_text = on_toggle_large_text
         self.on_toggle_sidebar = on_toggle_sidebar
         self.theme_choice = tk.StringVar(value="Hell")
         self.status_var = tk.StringVar(value="Bereit – Auto-Checks aktiv")
@@ -41,6 +43,7 @@ class HeaderControls:
         self.progress_label = tk.StringVar(value="Startroutine: bereit")
         self.debug_enabled = tk.BooleanVar(value=False)
         self.clock_var = tk.StringVar(value="Zeit wird geladen…")
+        self.accessibility_var = tk.StringVar(value="Kontrast-Check lädt…")
         self.input_fields: list[ValidatedEntry] = []
 
     def build(self) -> None:
@@ -60,7 +63,10 @@ class HeaderControls:
         )
         ttk.Label(self.frame, textvariable=self.stat_var).grid(row=3, column=0, sticky="w")
         ttk.Label(self.frame, textvariable=self.clock_var, style="Helper.TLabel").grid(
-            row=4, column=0, sticky="w"
+            row=5, column=0, sticky="w"
+        )
+        ttk.Label(self.frame, textvariable=self.accessibility_var, style="Helper.TLabel").grid(
+            row=6, column=0, sticky="w", pady=(2, 0)
         )
 
         ttk.Button(
@@ -79,6 +85,14 @@ class HeaderControls:
             variable=self.debug_enabled,
             command=lambda: self.on_toggle_debug(self.debug_enabled.get()),
         ).grid(row=2, column=1, sticky="w", padx=(8, 0))
+
+        self.large_text_enabled = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            self.frame,
+            text="Großtext (150%)",
+            variable=self.large_text_enabled,
+            command=lambda: self.on_toggle_large_text(self.large_text_enabled.get()),
+        ).grid(row=3, column=1, sticky="w", padx=(8, 0))
 
         ttk.Button(
             self.frame,
@@ -116,9 +130,9 @@ class HeaderControls:
             self.frame,
             maximum=100,
             variable=self.progress_var,
-        ).grid(row=3, column=1, columnspan=3, sticky="ew", padx=(8, 0), pady=(4, 0))
+        ).grid(row=4, column=1, columnspan=3, sticky="ew", padx=(8, 0), pady=(4, 0))
         ttk.Label(self.frame, textvariable=self.progress_label).grid(
-            row=3, column=4, sticky="w", padx=(8, 0)
+            row=4, column=4, sticky="w", padx=(8, 0)
         )
 
         self.frame.columnconfigure(4, weight=1)
@@ -137,6 +151,14 @@ class HeaderControls:
         self.progress_var.set(safe_value)
         self.progress_label.set(label)
 
+    def set_accessibility_status(self, report: dict[str, str]) -> None:
+        if not isinstance(report, dict) or "status" not in report or "details" not in report:
+            raise ValueError("Ungültiger Kontrast-Report übergeben")
+        status = report.get("status", "warnung")
+        detail = report.get("details", "Keine Details")
+        prefix = "Kontrast ok" if status == "ok" else "Kontrast prüfen"
+        self.accessibility_var.set(f"{prefix}: {detail}")
+
 
 class WorkspacePane(ttk.LabelFrame):
     """Editable workspace pane with context menu and validation."""
@@ -148,6 +170,7 @@ class WorkspacePane(ttk.LabelFrame):
         description: str,
         logging_manager: LoggingManager | None = None,
         status_color_provider: Callable[[bool], tuple[str, str]] | None = None,
+        theme_manager: ThemeManager | None = None,
     ) -> None:
         super().__init__(parent, text=title, padding=10, labelanchor="n", style="Pane.TLabelframe")
         self.logging_manager = logging_manager
@@ -155,6 +178,7 @@ class WorkspacePane(ttk.LabelFrame):
             value="Bereit: Einfach Text eintragen. Rechtsklick öffnet das Kontextmenü."
         )
         self.status_color_provider = status_color_provider
+        self.theme_manager = theme_manager
         self.description = description
         self._menu = tk.Menu(self, tearoff=False)
         self._menu.add_command(label="Kopieren", command=self.copy_selection)
@@ -171,6 +195,8 @@ class WorkspacePane(ttk.LabelFrame):
             "Freier Bereich für Notizen, Modul-Befehle oder To-dos."
             " Tastatur: Strg+Enter speichert den Inhalt.",
         )
+        if self.theme_manager:
+            self.theme_manager.apply_text_theme(self.text)
         self.text.bind("<Button-3>", self._show_menu)
         self.text.bind("<Control-Return>", lambda event: self.save_content())
         self.text.pack(fill=tk.BOTH, expand=True, pady=4)
@@ -396,6 +422,7 @@ class DashboardLayout:
         on_health_check: Callable[[], None],
         on_toggle_debug: Callable[[bool], None],
         on_show_index: Callable[[], None],
+        on_toggle_large_text: Callable[[bool], None] | None = None,
         on_toggle_sidebar: Callable[[], None] | None = None,
         on_choose_project: Callable[[], None] | None = None,
         on_save_note: Callable[[str], bool] | None = None,
@@ -413,6 +440,7 @@ class DashboardLayout:
         self.root.rowconfigure(1, weight=1)
         self.root.rowconfigure(2, weight=0, minsize=48)
 
+        on_toggle_large_text = on_toggle_large_text or (lambda _state: None)
         on_toggle_sidebar = on_toggle_sidebar or (lambda: None)
         on_choose_project = on_choose_project or (lambda: None)
         on_save_note = on_save_note or (lambda _text: True)
@@ -430,9 +458,12 @@ class DashboardLayout:
             on_health_check,
             on_toggle_debug,
             on_show_index,
+            on_toggle_large_text,
             on_toggle_sidebar,
         )
         self.header_controls.build()
+        report = self.theme_manager.accessibility_report()
+        self.header_controls.set_accessibility_status(report)
         self.header_controls.frame.grid(row=0, column=0, sticky="nsew")
 
         workspace_container = ttk.Frame(self.root, padding=8)
@@ -464,6 +495,7 @@ class DashboardLayout:
             status_color_provider=self.state.rotate_status_colors,
         )
         self.note_panel.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        self.theme_manager.apply_text_theme(self.note_panel.text)
 
         pane_grid = ttk.Frame(workspace)
         pane_grid.grid(row=1, column=0, sticky="nsew")
@@ -488,6 +520,7 @@ class DashboardLayout:
                     description=pane_descriptions[index],
                     logging_manager=self.logging_manager,
                     status_color_provider=self.state.rotate_status_colors,
+                    theme_manager=self.theme_manager,
                 )
                 color_band = tk.Frame(
                     pane, height=8, background=color_primary, highlightthickness=0

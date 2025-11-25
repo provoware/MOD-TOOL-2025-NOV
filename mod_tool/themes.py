@@ -8,13 +8,13 @@ from typing import Dict, Tuple
 
 
 class ThemeManager:
-    """Handles five accessible themes and style registration."""
+    """Handles accessible themes, font scaling, and style registration."""
 
     THEMES = {
         "Hell": {
-            "background": "#f7f7f7",
-            "foreground": "#1f2933",
-            "accent": "#2b6cb0",
+            "background": "#f6f6f6",
+            "foreground": "#111827",
+            "accent": "#1d4ed8",
         },
         "Dunkel": {"background": "#1f2933", "foreground": "#f7f7f7", "accent": "#63b3ed"},
         "Kontrast": {"background": "#000000", "foreground": "#ffffff", "accent": "#ffd166"},
@@ -22,6 +22,12 @@ class ThemeManager:
         "Wald": {"background": "#0b3d2e", "foreground": "#e5f4ec", "accent": "#40e0d0"},
         "Neon Blau": {"background": "#0a0f1f", "foreground": "#e0e7ff", "accent": "#22d3ee"},
         "Neon Pink": {"background": "#0a0f1f", "foreground": "#e0e7ff", "accent": "#f472b6"},
+        "Dunkel": {"background": "#0f172a", "foreground": "#e5e7eb", "accent": "#22d3ee"},
+        "Kontrast": {"background": "#000000", "foreground": "#ffffff", "accent": "#fbbf24"},
+        "Sand": {"background": "#f3f0e6", "foreground": "#1f2937", "accent": "#92400e"},
+        "Marine": {"background": "#0b1b2b", "foreground": "#e0f2fe", "accent": "#38bdf8"},
+        "Wald": {"background": "#0b3d2e", "foreground": "#e5f4ec", "accent": "#34d399"},
+        "Pastell": {"background": "#eef2ff", "foreground": "#111827", "accent": "#7c3aed"},
     }
 
     def __init__(self, root: tk.Tk) -> None:
@@ -29,30 +35,39 @@ class ThemeManager:
         self.style = ttk.Style(root)
         self.current_theme = "Hell"
         default_font = tkfont.nametofont("TkDefaultFont")
+        text_font = tkfont.nametofont("TkTextFont")
+        fixed_font = tkfont.nametofont("TkFixedFont")
+        for named_font in (default_font, text_font, fixed_font):
+            named_font.configure(size=max(12, int(named_font.cget("size"))))
         self.fonts = {
             "default": default_font,
-            "text": tkfont.nametofont("TkTextFont"),
-            "fixed": tkfont.nametofont("TkFixedFont"),
-            "header": tkfont.Font(root=root, family="Arial", size=16, weight="bold"),
-            "status": tkfont.Font(root=root, family="Arial", size=11, weight="bold"),
+            "text": text_font,
+            "fixed": fixed_font,
+            "header": tkfont.Font(root=root, family="Arial", size=18, weight="bold"),
+            "status": tkfont.Font(root=root, family="Arial", size=12, weight="bold"),
             "helper": tkfont.Font(
                 root=root,
                 family=default_font.cget("family"),
-                size=default_font.cget("size"),
+                size=max(12, int(default_font.cget("size"))),
             ),
+            "button": tkfont.Font(root=root, family="Arial", size=12, weight="bold"),
         }
 
     @property
     def theme_names(self) -> list[str]:
         return list(self.THEMES.keys())
 
+    @property
+    def palette(self) -> dict[str, str]:
+        return self.THEMES.get(self.current_theme, self.THEMES["Hell"])
+
     def configure_styles(self) -> None:
         self.style.configure("Header.TLabel", font=self.fonts["header"])
-        self.style.configure("TLabel", wraplength=400, font=self.fonts["default"])
+        self.style.configure("TLabel", wraplength=440, font=self.fonts["default"])
         self.style.configure(
             "Helper.TLabel",
             foreground="#1f2933",
-            wraplength=520,
+            wraplength=540,
             font=self.fonts["helper"],
         )
         self.style.configure("Status.TLabel", font=self.fonts["status"])
@@ -72,9 +87,17 @@ class ThemeManager:
 
         self.root.configure(bg=bg)
         for element in ["TFrame", "TLabel", "TLabelFrame", "TButton", "TCombobox", "Treeview"]:
-            self.style.configure(element, background=bg, foreground=fg)
-        self.style.configure("TButton", padding=(12, 10), relief="raised", borderwidth=2)
-        self.style.configure("TCombobox", fieldbackground="white")
+            self.style.configure(element, background=bg, foreground=fg, font=self.fonts["default"])
+        self.style.configure(
+            "TButton",
+            padding=(14, 12),
+            relief="raised",
+            borderwidth=2,
+            focusthickness=2,
+            focuscolor=accent,
+            font=self.fonts["button"],
+        )
+        self.style.configure("TCombobox", fieldbackground="white", padding=(10, 8))
         self.style.configure("Treeview", fieldbackground=bg, bordercolor=accent)
         self.style.configure("TCheckbutton", background=bg, foreground=fg)
         self.style.map(
@@ -84,19 +107,44 @@ class ThemeManager:
             focuscolor=[("focus", accent)],
         )
         self.style.map("TCheckbutton", focuscolor=[("active", accent)])
+        self.style.map("TEntry", highlightcolor=[("focus", accent)], bordercolor=[("focus", accent)])
         for style_name in ("Pane.TLabelframe", "Note.TLabelframe", "Sidebar.TLabelframe"):
             self.style.configure(style_name, background=bg, foreground=fg, bordercolor=accent)
             self.style.configure(f"{style_name}.Label", background=bg, foreground=accent)
         self.style.configure("Status.TLabel", foreground=accent)
 
+        progress_style = {
+            "troughcolor": bg,
+            "background": accent,
+            "bordercolor": accent,
+            "lightcolor": accent,
+            "darkcolor": accent,
+        }
+        self.style.configure("TProgressbar", **progress_style)
+
         for child in self.root.winfo_children():
             self._propagate_bg(child, bg)
 
     def status_colors(self, ok: bool) -> tuple[str, str]:
-        palette = self.THEMES.get(self.current_theme, self.THEMES["Hell"])
+        palette = self.palette
         accent = palette["accent"]
         background = palette["background"]
         return (accent, background) if ok else ("#c0392b", background)
+
+    def apply_text_theme(self, widget: tk.Widget) -> None:
+        """Apply readable text settings to plain Tk widgets."""
+
+        if not isinstance(widget, tk.Text):
+            raise TypeError("apply_text_theme erwartet ein tk.Text-Widget")
+        palette = self.palette
+        widget.configure(
+            font=self.fonts["text"],
+            foreground=palette["foreground"],
+            background=palette["background"],
+            insertbackground=palette["accent"],
+            highlightthickness=1,
+            highlightbackground=palette["accent"],
+        )
 
     def _propagate_bg(self, widget: tk.Widget, bg: str) -> None:
         try:
