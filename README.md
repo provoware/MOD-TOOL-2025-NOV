@@ -1,6 +1,7 @@
 # MOD-TOOL-2025-NOV – Steuerzentrale
 
 Modulare, barrierearme Steuerzentrale mit Live-Logging, automatischer Selbstprüfung und Plugin-Unterstützung.
+Jetzt mit "Klick & Start"-Routine, Debug/Logging-Umschalter und Schnellcheck-Schaltfläche für sofortige Sichtbarkeit.
 
 ## Starten (mit Autopilot)
 - `python main.py` reicht: Das Tool legt automatisch eine virtuelle Umgebung
@@ -8,7 +9,26 @@ Modulare, barrierearme Steuerzentrale mit Live-Logging, automatischer Selbstprü
   Abhängigkeiten aus `requirements.txt`. Fortschritt wird im Terminal angezeigt.
 - Pflichtordner (`logs/`, `plugins/`, `config/`) werden repariert oder erstellt.
 - Ein Syntax-Check (`compileall`, prüft Quelltext) läuft vor dem GUI-Start.
+- Die Klick-&-Start-Schaltfläche im Header triggert alle Prüfungen erneut (inkl. Plugins & Tests)
+  und protokolliert verständlich.
 - Hintergrundüberwachung liefert Live-Status im Logging-Panel.
+
+## Manifest & Layout-Doku
+- Die aktuelle Struktur (Automationsschritte, Health-Checks) und das Layout (Header, vier Panels, Fußleiste)
+  stehen in `manifest.json` im Projektordner.
+- Der Inhalt wird bei jedem Start automatisch aktualisiert. Manuell aktualisieren geht in einem Schritt:
+  ```bash
+  python - <<'PY'
+  from mod_tool.manifest import ManifestWriter, default_structure_manifest
+  ManifestWriter("manifest.json").write(default_structure_manifest())
+  print("Manifest erneuert.")
+  PY
+  ```
+
+## Zusätzliche Prüfungen für Codequalität
+- Syntax-Check (`compileall`) läuft automatisch über `mod_tool/`.
+- Unittests decken Self-Check, Plugins und das Manifest ab: `python -m unittest discover`.
+- Format-Hinweis: Für optionale Formatierung können `ruff` oder `black` in `.venv` installiert und ausgeführt werden.
 ## Starten
 ```bash
 python main.py
@@ -28,5 +48,7 @@ python -m unittest discover
 - Themes im Kopfbereich wechseln, um bestes Farb- und Kontrastverhalten zu finden.
 - Rote Eingaben bedeuten: Feld ausfüllen; dunkle Schrift bedeutet gültig.
 - Log-Bereich zeigt alle Schritte klar und transparent, ideal zum Debuggen.
+- Tipp: Wenn etwas hakt, einfach `python main.py` erneut starten – die Startroutine repariert Ordner,
+  installiert fehlende Pakete und schreibt das Manifest neu.
 
 Weitere Details siehe `docs/DEVELOPER_GUIDE.md`.

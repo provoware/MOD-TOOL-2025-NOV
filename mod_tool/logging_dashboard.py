@@ -60,6 +60,7 @@ class LoggingManager:
         self.log_queue: queue.Queue[logging.LogRecord] = queue.Queue()
         self.panel: LoggingPanel | None = None
         self.handler = QueueHandler(self.log_queue)
+        self._debug_enabled = False
 
     def attach(self, parent: tk.Widget) -> None:
         self.panel = LoggingPanel(parent, self.log_queue)
@@ -71,6 +72,14 @@ class LoggingManager:
         logging.info("Live-Logging aktiviert")
         if self.panel:
             self.panel.start()
+
+    def set_debug(self, enabled: bool) -> None:
+        self._debug_enabled = enabled
+        level = logging.DEBUG if enabled else logging.INFO
+        logging.getLogger().setLevel(level)
+        logging.getLogger(__name__).info(
+            "Debugmodus %s", "aktiv" if enabled else "deaktiviert"
+        )
 
     def log_system(self, message: str) -> None:
         logging.getLogger(__name__).info(message)
