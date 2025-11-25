@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from pathlib import Path
 from tkinter import ttk
 from typing import Callable, Iterable
 
@@ -346,12 +347,12 @@ class DashboardLayout:
         root: tk.Tk,
         theme_manager: ThemeManager,
         logging_manager: LoggingManager,
-        state: DashboardState,
+        state: DashboardState | None = None,
     ) -> None:
         self.root = root
         self.theme_manager = theme_manager
         self.logging_manager = logging_manager
-        self.state = state
+        self.state = state or DashboardState(base_path=Path("logs"))
         self.header_controls: HeaderControls | None = None
         self.sidebar: Sidebar | None = None
         self.note_panel: NotePanel | None = None
