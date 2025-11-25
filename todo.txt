@@ -1,5 +1,5 @@
 # MOD Tool Aufgabenliste
-Fortschritt: 100% (17/17 Aufgaben erledigt)
+Fortschritt: 100% (20/20 Aufgaben erledigt)
 - [x] GUI-Grundgerüst mit Header, 4-Panels und dreigeteilter Fußleiste erstellen.
 - [x] Live-Logging mit Debug-Bereich und klaren Ereignismeldungen einbinden.
 - [x] Automatische Selbstprüfung (Ordner prüfen/erstellen, Syntax-Check) integrieren.
@@ -17,3 +17,6 @@ Fortschritt: 100% (17/17 Aufgaben erledigt)
 - [x] Fortschrittsanzeige im UI mit Prozentwert anreichern.
 - [x] Dynamische Zoomsteuerung (Strg + Mausrad) mit skalierenden Schriften ergänzen.
 - [x] Zusätzliche Plugins bereitstellen und dokumentieren.
+- [x] Laienfreundliche Startroutine-Hinweise mit direkten Befehlen ergänzen.
+- [x] Debug- und Log-Hinweise automatisch ins Statusfeld spiegeln.
+- [x] Aktivierungsbefehl für virtuelle Umgebung dokumentiert.
