@@ -52,3 +52,5 @@ Fortschritt: 100% (39/39 Aufgaben erledigt)
 - [x] Themenpalette bereinigt, neue kontraststarke Varianten ergänzt und Tests automatisiert.
 - [x] Warnlogik im Selbstcheck geklärt, Eingaben validiert und Unit-Tests ergänzt.
 - [x] Kachel-Navigation mit Einstellungsbereich wie Screenshot umgesetzt und barrierefrei beschrieben.
+
+- [x] Kombinationsleitfaden für System/Modul/UI-Schichten mit Laienhinweisen dokumentiert.
