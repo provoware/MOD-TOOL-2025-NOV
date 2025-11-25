@@ -65,6 +65,8 @@ Fortschritt: 100% (42/42 Aufgaben erledigt)
 - [x] Invertiertes Hochkontrast-Theme samt Validierungen und Best-Practice-Tests hinterlegt.
 - [x] Aurora-Theme nach Screenshot portiert (Navigation, Karten, Einstellungen farbcodiert).
 - [x] Karten-Styling für Notizen, To-dos, Genres und Snippets vereinheitlicht und validiert.
+- [x] Kachel-Board aus Screenshot 1:1 für Hauptfunktionen umgesetzt und barrierearm platziert.
+- [x] Detailbereiche (Notizen, To-dos, Snippets) standardmäßig eingeklappt und per Karte aktivierbar.
 Fortschritt: 0% (0/9 neue Aufgaben geplant)
 Fortschritt: 0% (0/6 neue Aufgaben geplant)
 - [x] Layout-Guides für Header/Navigation/2x2-Arbeitsfeld/Utility/Footer als Schnellhilfe ergänzt.

@@ -29,6 +29,11 @@ class ThemeManager:
                 ("#ef4444", "#301014"),
                 ("#8b5cf6", "#25183a"),
                 ("#0ea5e9", "#0a2435"),
+                ("#d946ef", "#2b1032"),
+                ("#f59e0b", "#2d1a05"),
+                ("#14b8a6", "#0b2b2c"),
+                ("#c026d3", "#2a0c30"),
+                ("#fb7185", "#2f1015"),
             ],
         },
         "Hell": {
@@ -183,6 +188,8 @@ class ThemeManager:
         self.style.configure("Note.TLabelframe.Label", font=self.fonts["header"])
         self.style.configure("Sidebar.TLabelframe", padding=8)
         self.style.configure("Sidebar.TLabelframe.Label", font=self.fonts["status"])
+        self.style.configure("Tile.TFrame", padding=6)
+        self.style.configure("Tile.TButton", font=self.fonts["button"], padding=(12, 10))
 
     def _theme_contrast_state(self, name: str, minimum_ratio: float | None = None) -> dict[str, str]:
         """Return a per-theme contrast assessment for the guard."""
@@ -324,6 +331,22 @@ class ThemeManager:
             padding=10,
         )
         self.style.configure("Card.TLabelframe.Label", background=card_base, foreground=card_title)
+        self.style.configure("Tile.TFrame", background=card_base)
+        self.style.configure(
+            "Tile.TButton",
+            background=card_base,
+            foreground=fg,
+            bordercolor=accent,
+            focusthickness=2,
+            focuscolor=accent,
+            padding=(12, 10),
+            font=self.fonts["button"],
+        )
+        self.style.map(
+            "Tile.TButton",
+            background=[("active", accent)],
+            foreground=[("active", fg)],
+        )
         self.style.configure("Main.TFrame", background=bg)
 
         for child in self.root.winfo_children():
