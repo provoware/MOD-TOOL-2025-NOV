@@ -8,6 +8,7 @@ import sys
 from typing import Iterable
 
 from .manifest import ManifestWriter, default_structure_manifest
+from .themes import ThemeManager
 
 
 class SelfCheck:
@@ -124,6 +125,9 @@ class SelfCheck:
         path_status["manifest"] = manifest_status
         if manifest_msg:
             path_status["manifest_info"] = manifest_msg
+        accessibility = ThemeManager.accessibility_report()
+        path_status["accessibility"] = accessibility["status"]
+        path_status["accessibility_notes"] = accessibility["details"]
         return path_status
 
     def ensure_manifest_file(self) -> tuple[str, str]:

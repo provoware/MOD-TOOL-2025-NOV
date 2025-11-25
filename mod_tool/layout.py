@@ -1,4 +1,4 @@
-"""Dashboard layout builder."""
+"""Dashboard layout builder with accessible, editable workspaces."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -32,6 +32,8 @@ class HeaderControls:
         self.theme_choice = tk.StringVar(value="Hell")
         self.status_var = tk.StringVar(value="Bereit – Auto-Checks aktiv")
         self.stat_var = tk.StringVar(value="System gesund")
+        self.progress_var = tk.IntVar(value=10)
+        self.progress_label = tk.StringVar(value="Startroutine: bereit")
         self.debug_enabled = tk.BooleanVar(value=False)
         self.input_fields: list[ValidatedEntry] = []
 
@@ -39,8 +41,15 @@ class HeaderControls:
         ttk.Label(self.frame, text="Steuerzentrale", style="Header.TLabel").grid(
             row=0, column=0, sticky="w"
         )
-        ttk.Label(self.frame, textvariable=self.status_var).grid(row=1, column=0, sticky="w")
-        ttk.Label(self.frame, textvariable=self.stat_var).grid(row=2, column=0, sticky="w")
+        ttk.Label(
+            self.frame,
+            text="Alles im Blick: Starte Autopilot, prüfe Gesundheit oder wechsle das Theme.",
+            style="Helper.TLabel",
+        ).grid(row=1, column=0, sticky="w", pady=(2, 0))
+        ttk.Label(self.frame, textvariable=self.status_var, style="Status.TLabel").grid(
+            row=2, column=0, sticky="w"
+        )
+        ttk.Label(self.frame, textvariable=self.stat_var).grid(row=3, column=0, sticky="w")
 
         ttk.Button(
             self.frame,
@@ -67,7 +76,10 @@ class HeaderControls:
 
         ttk.Label(self.frame, text="Theme").grid(row=0, column=3, sticky="e")
         theme_box = ttk.Combobox(
-            self.frame, textvariable=self.theme_choice, values=self.theme_manager.theme_names
+            self.frame,
+            textvariable=self.theme_choice,
+            values=self.theme_manager.theme_names,
+            state="readonly",
         )
         theme_box.grid(row=0, column=4, sticky="ew", padx=(8, 0))
         theme_box.bind("<<ComboboxSelected>>", self._on_theme_change)
@@ -83,6 +95,15 @@ class HeaderControls:
             row=2, column=2, columnspan=3, sticky="ew", padx=(8, 0)
         )
 
+        ttk.Progressbar(
+            self.frame,
+            maximum=100,
+            variable=self.progress_var,
+        ).grid(row=3, column=1, columnspan=3, sticky="ew", padx=(8, 0), pady=(4, 0))
+        ttk.Label(self.frame, textvariable=self.progress_label).grid(
+            row=3, column=4, sticky="w", padx=(8, 0)
+        )
+
         self.frame.columnconfigure(4, weight=1)
 
     def _on_theme_change(self, event: object) -> None:  # pragma: no cover - UI binding
@@ -92,6 +113,105 @@ class HeaderControls:
         self.status_var.set(
             "Hilfe: Klicke auf 'Klick & Start' – die Routine prüft alles, Plugins und Tests inklusive."
         )
+
+    def set_progress(self, percent: int, label: str) -> None:
+        safe_value = max(0, min(100, percent))
+        self.progress_var.set(safe_value)
+        self.progress_label.set(label)
+
+
+class WorkspacePane(ttk.LabelFrame):
+    """Editable workspace pane with context menu and validation."""
+
+    def __init__(
+        self,
+        parent: tk.Widget,
+        title: str,
+        description: str,
+        logging_manager: LoggingManager | None = None,
+    ) -> None:
+        super().__init__(parent, text=title, padding=10, labelanchor="n")
+        self.logging_manager = logging_manager
+        self.status_var = tk.StringVar(
+            value="Bereit: Einfach Text eintragen. Rechtsklick öffnet das Kontextmenü."
+        )
+        self.description = description
+        self._menu = tk.Menu(self, tearoff=False)
+        self._menu.add_command(label="Kopieren", command=self.copy_selection)
+        self._menu.add_command(label="Einfügen", command=self.paste_clipboard)
+        self._menu.add_command(label="Alles markieren", command=self.select_all)
+        self._menu.add_separator()
+        self._menu.add_command(label="Leeren", command=self.clear_text)
+        self._menu.add_command(label="Speichern & prüfen", command=self.save_content)
+
+        ttk.Label(self, text=self.description, wraplength=240).pack(anchor="w")
+        self.text = tk.Text(self, height=6, wrap="word")
+        self.text.insert(
+            "1.0",
+            "Freier Bereich für Notizen, Modul-Befehle oder To-dos."
+            " Tastatur: Strg+Enter speichert den Inhalt.",
+        )
+        self.text.bind("<Button-3>", self._show_menu)
+        self.text.bind("<Control-Return>", lambda event: self.save_content())
+        self.text.pack(fill=tk.BOTH, expand=True, pady=4)
+
+        button_bar = ttk.Frame(self)
+        ttk.Button(button_bar, text="Speichern & prüfen", command=self.save_content).pack(
+            side=tk.LEFT, padx=(0, 6)
+        )
+        ttk.Button(button_bar, text="Kontextmenü öffnen", command=self.open_menu_now).pack(
+            side=tk.LEFT
+        )
+        ttk.Button(button_bar, text="Leeren", command=self.clear_text).pack(side=tk.LEFT, padx=(6, 0))
+        button_bar.pack(anchor="w", pady=(2, 0))
+
+        ttk.Label(self, textvariable=self.status_var, style="Status.TLabel").pack(
+            anchor="w", pady=(4, 0)
+        )
+
+    def _show_menu(self, event: tk.Event[tk.Misc]) -> None:  # pragma: no cover - UI binding
+        self._menu.tk_popup(event.x_root, event.y_root)
+
+    def open_menu_now(self) -> None:
+        self._menu.tk_popup(self.winfo_rootx() + 20, self.winfo_rooty() + 20)
+
+    def copy_selection(self) -> None:
+        try:
+            selection = self.text.selection_get()
+        except tk.TclError:
+            self.status_var.set("Nichts markiert – bitte Text auswählen.")
+            return
+        self.clipboard_clear()
+        self.clipboard_append(selection)
+        self.status_var.set("Kopiert – Inhalt liegt in der Zwischenablage.")
+
+    def paste_clipboard(self) -> None:
+        try:
+            data = self.clipboard_get()
+        except tk.TclError:
+            self.status_var.set("Zwischenablage leer – nichts zum Einfügen.")
+            return
+        self.text.insert(tk.INSERT, data)
+        self.status_var.set("Eingefügt – bitte kurz prüfen.")
+
+    def select_all(self) -> None:
+        self.text.tag_add("sel", "1.0", tk.END)
+        self.status_var.set("Alles markiert – bereit zum Kopieren oder Löschen.")
+
+    def clear_text(self) -> None:
+        self.text.delete("1.0", tk.END)
+        self.status_var.set("Feld geleert – neu starten und speichern nicht vergessen.")
+
+    def save_content(self) -> bool:
+        content = self.text.get("1.0", tk.END).strip()
+        if not content:
+            self.status_var.set("Bitte Text eingeben – leer kann nicht gespeichert werden.")
+            return False
+        preview = content[:60].replace("\n", " ")
+        self.status_var.set("Gespeichert: Inhalt geprüft und angenommen.")
+        if self.logging_manager:
+            self.logging_manager.log_system(f"Pane aktualisiert: {preview}")
+        return True
 
 
 class DashboardLayout:
@@ -157,18 +277,24 @@ class DashboardLayout:
             workspace.columnconfigure(i, weight=1, uniform="pane")
             workspace.rowconfigure(i, weight=1, uniform="pane")
 
+        pane_descriptions = [
+            "Hier kannst du To-dos sammeln oder einfache Schritte notieren.",
+            "Platz für Plugin-Notizen und schnelle Ergebnisse.",
+            "Sammel Hinweise für Fehler, Logs oder Screenshots.",
+            "Freie Zone für eigene Ideen oder Checklisten.",
+        ]
+
+        index = 0
         for row in range(2):
             for col in range(2):
-                pane = ttk.LabelFrame(
+                pane = WorkspacePane(
                     workspace,
-                    text=f"Bereich {row * 2 + col + 1}",
-                    labelanchor="n",
-                    padding=8,
+                    title=f"Bereich {row * 2 + col + 1}",
+                    description=pane_descriptions[index],
+                    logging_manager=self.logging_manager,
                 )
                 pane.grid(row=row, column=col, padx=6, pady=6, sticky="nsew")
-                ttk.Label(pane, text="Modularer Inhalt / Plugin-Fläche", wraplength=220).pack(
-                    anchor="w"
-                )
+                index += 1
 
         footer = ttk.Frame(self.root, padding=8)
         footer.grid(row=2, column=0, sticky="nsew")
@@ -184,9 +310,13 @@ class DashboardLayout:
 
         self.logging_manager.attach(log_block)
         ttk.Label(debug_block, text="Debugger-Modus bereit – Eingriffe protokolliert.").pack(anchor="w")
-        ttk.Label(info_block, text="Tipps: Eingaben prüfen, automatische Selbstheilung aktiv.").pack(
-            anchor="w"
-        )
+        ttk.Label(
+            info_block,
+            text=(
+                "Tipps: Eingaben prüfen, automatische Selbstheilung aktiv."
+                " Kontextmenü über Rechtsklick öffnet Bearbeitungsoptionen."
+            ),
+        ).pack(anchor="w")
 
     def describe_sections(self) -> list[LayoutSection]:
         """Expose layout sections for manifest creation and accessibility docs."""

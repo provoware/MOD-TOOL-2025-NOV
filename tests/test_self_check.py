@@ -31,6 +31,8 @@ class SelfCheckTests(unittest.TestCase):
             self.assertIn(result["code_format"], {"ok", "kompilierungswarnung"})
             self.assertIn(result["tests"], {"ok", "fehlgeschlagen", "übersprungen"})
             self.assertIn(result["manifest"], {"vorhanden", "erstellt"})
+            self.assertIn(result["accessibility"], {"ok", "warnung"})
+            self.assertIn("accessibility_notes", result)
             manifest_file = dummy_root / "manifest.json"
             self.assertTrue(manifest_file.exists())
 
