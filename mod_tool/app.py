@@ -29,6 +29,7 @@ from .manifest import (
 from .logging_dashboard import LoggingManager
 from .plugins import PluginManager
 from .self_check import SelfCheck
+from .snippet_library import SnippetStore
 from .themes import ThemeManager
 from .todo import TodoManager
 from .tool_index import ToolIndex, ToolIndexView
@@ -66,6 +67,7 @@ class ControlCenterApp:
         self._large_text = tk.BooleanVar(value=False)
         self._genre_archive = GenreArchive(self._self_check.base_path)
         self._todo_manager = TodoManager(self._self_check.base_path)
+        self._snippet_store = SnippetStore(self._self_check.base_path)
 
         self._layout = DashboardLayout(
             self._root,
@@ -161,8 +163,10 @@ class ControlCenterApp:
                 self._logging_manager.log_system(f"Kurzfassung: {line}")
             archive_path = self._genre_archive.ensure_archive()
             todo_path = self._todo_manager.ensure_store()
+            snippet_path = self._snippet_store.ensure_store()
             self._logging_manager.log_system(f"Genre-Archiv bereitgestellt: {archive_path}")
             self._logging_manager.log_system(f"To-do-Ablage geprüft: {todo_path}")
+            self._logging_manager.log_system(f"Snippet-Archiv bereitgestellt: {snippet_path}")
             loaded = self._plugin_manager.load_plugins()
             self._logging_manager.log_system(
                 f"Plugins geladen ({len(loaded)}): {', '.join(loaded) if loaded else 'keine Module gefunden'}"
@@ -355,10 +359,14 @@ class ControlCenterApp:
         self._startup_guide = StartupGuide(str(self._state.base_path / ".venv"))
         self._genre_archive = GenreArchive(self._self_check.base_path)
         self._todo_manager = TodoManager(self._self_check.base_path)
+        self._snippet_store = SnippetStore(self._self_check.base_path)
         if self._layout.note_panel:
             self._layout.note_panel.status_color_provider = self._state.rotate_status_colors
+        if self._layout.snippet_panel:
+            self._layout.snippet_panel.store = self._snippet_store
         self._layout.refresh_todos()
         self._layout.refresh_genres()
+        self._layout.refresh_snippets()
         self._state.ensure_project_structure()
         self._logging_manager.log_system(f"Projektordner gesetzt: {base}")
         self._set_status(f"Projektpfad aktiv: {base}")
@@ -474,6 +482,7 @@ class ControlCenterApp:
             on_toggle_todo=self._toggle_todo_done,
             genre_summary_provider=self._genre_summary,
             on_add_genre=self._add_genre_profile,
+            snippet_store=self._snippet_store,
         )
         self._init_menu()
         self._attach_validated_inputs()

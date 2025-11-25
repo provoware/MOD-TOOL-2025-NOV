@@ -12,6 +12,7 @@ from .dashboard_state import DashboardState
 
 from .logging_dashboard import LoggingManager
 from .manifest import LayoutSection
+from .snippet_library import SnippetLibraryPanel, SnippetStore
 from .themes import ThemeManager
 from .validator import ValidatedEntry
 
@@ -535,6 +536,7 @@ class DashboardLayout:
         self.note_panel: NotePanel | None = None
         self.todo_panel: TodoPanel | None = None
         self.genre_panel: GenrePanel | None = None
+        self.snippet_panel: SnippetLibraryPanel | None = None
         self.info_label: ttk.Label | None = None
         self.module_palette: Sequence[tuple[str, str]] = (
             ("#1fb6ff", "#e0f7ff"),  # Modul 1: Blau/Türkis
@@ -567,6 +569,12 @@ class DashboardLayout:
                 purpose="Freier Slot für Plugins oder Statuskarten",
                 accessibility_label="Rechtes unteres Panel",
             ),
+            LayoutSection(
+                identifier="snippets",
+                title="Snippet-Bibliothek",
+                purpose="Textbausteine speichern, importieren, exportieren",
+                accessibility_label="Hilfspaneel rechts mit validierten Eingabefeldern",
+            ),
         ]
 
     def build(
@@ -590,6 +598,7 @@ class DashboardLayout:
         on_toggle_todo: Callable[[str, bool], None] | None = None,
         genre_summary_provider: Callable[[], Sequence[str]] | None = None,
         on_add_genre: Callable[[str, str, str], bool] | None = None,
+        snippet_store: SnippetStore | None = None,
     ) -> None:
         self.theme_manager.configure_styles()
         self.root.columnconfigure(0, weight=1)
@@ -730,6 +739,7 @@ class DashboardLayout:
         helper_container.grid(row=1, column=0, sticky="ew", pady=(0, 8))
         helper_container.columnconfigure(0, weight=1)
         helper_container.columnconfigure(1, weight=1)
+        helper_container.columnconfigure(2, weight=1)
 
         self.todo_panel = TodoPanel(
             helper_container,
@@ -745,6 +755,15 @@ class DashboardLayout:
             summary_provider=genre_summary_provider,
         )
         self.genre_panel.grid(row=0, column=1, sticky="nsew", padx=(4, 0))
+
+        if snippet_store:
+            self.snippet_panel = SnippetLibraryPanel(
+                helper_container,
+                store=snippet_store,
+                theme_manager=self.theme_manager,
+                logging_manager=self.logging_manager,
+            )
+            self.snippet_panel.grid(row=0, column=2, sticky="nsew", padx=(4, 0))
 
         pane_grid = ttk.Frame(workspace)
         pane_grid.grid(row=2, column=0, sticky="nsew")
@@ -846,6 +865,10 @@ class DashboardLayout:
     def refresh_genres(self) -> None:
         if self.genre_panel:
             self.genre_panel.refresh()
+
+    def refresh_snippets(self) -> None:
+        if self.snippet_panel:
+            self.snippet_panel.refresh()
 
     def describe_sections(self) -> list[LayoutSection]:
         """Expose layout sections for manifest creation and accessibility docs."""
