@@ -64,6 +64,7 @@ Fortschritt: 100% (42/42 Aufgaben erledigt)
 - [x] Scrollbare Text-, Listen- und Tabellenbereiche für volle Sichtbarkeit ergänzt.
 - [x] Invertiertes Hochkontrast-Theme samt Validierungen und Best-Practice-Tests hinterlegt.
 Fortschritt: 0% (0/9 neue Aufgaben geplant)
+Fortschritt: 0% (0/6 neue Aufgaben geplant)
 - [ ] Kontrast-Wächter einbauen: Themes beim Wechsel auf Mindestkontrast prüfen und bei schwachem Wert automatisch auf ein sicheres Theme umschalten.
 - [ ] Start/Monitor entkoppeln: Hintergrund-Monitor stoppbar machen und Startroutine in einen eigenen Service auslagern.
 - [ ] Plugin-Schema prüfen: Erwartete Hooks validieren, ungültige Plugins blocken und Status klar loggen.
