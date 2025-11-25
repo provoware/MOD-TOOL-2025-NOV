@@ -46,6 +46,11 @@ python main.py
 - Syntax-Check via `compileall` sichert Konsistenz.
 - Hintergrundüberwachung protokolliert Gesundheitsmeldungen im Logging-Panel.
 
+## Genres-Tool (Zufalls-Ideen)
+- Über `Werkzeuge > Genres-Tool öffnen` oder die Sidebar-Kachel `Genres` starten.
+- Profile mit Genres, Stimmungen und Stilen anlegen, Duplikate werden automatisch abgefangen.
+- Zufallsauswahl mit Kopierfunktion, Log-Export und Dark-Mode-Schalter inklusive.
+
 ## Tests
 ```bash
 python -m unittest discover

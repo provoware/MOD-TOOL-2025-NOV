@@ -592,6 +592,7 @@ class DashboardLayout:
         on_import_notes: Callable[[], None] | None = None,
         on_export_notes: Callable[[], None] | None = None,
         on_edit_hints: Callable[[], None] | None = None,
+        on_open_genres_tool: Callable[[], None] | None = None,
         info_provider: Callable[[], Iterable[str]] | None = None,
         todo_provider: Callable[[], Sequence[TodoItem]] | None = None,
         on_add_todo: Callable[[str, str | None, str, bool], bool] | None = None,
@@ -616,6 +617,7 @@ class DashboardLayout:
         on_import_notes = on_import_notes or (lambda: None)
         on_export_notes = on_export_notes or (lambda: None)
         on_edit_hints = on_edit_hints or (lambda: None)
+        on_open_genres_tool = on_open_genres_tool or (lambda: None)
         info_provider = info_provider or (lambda: ("Best Practices folgen noch",))
         todo_provider = todo_provider or (lambda: ())
         on_add_todo = on_add_todo or (lambda *_args: False)
@@ -660,7 +662,7 @@ class DashboardLayout:
                 "label": "Genres",
                 "icon": "🎵",
                 "description": "Archiv und Profile pflegen.",
-                "command": lambda: self.refresh_genres(),
+                "command": on_open_genres_tool,
             },
             {
                 "label": "Vorlagen",
