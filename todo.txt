@@ -1,4 +1,5 @@
 # MOD Tool Aufgabenliste
+Fortschritt: 100% (33/33 Aufgaben erledigt)
 Fortschritt: 100% (29/29 Aufgaben erledigt)
 Fortschritt: 100% (29/29 Aufgaben erledigt)
 Fortschritt: 100% (26/26 Aufgaben erledigt)
@@ -32,5 +33,8 @@ Fortschritt: 100% (23/23 Aufgaben erledigt)
 - [x] Barrierearmes Raster mit Mindestgrößen für Header, Footer und Sidebar definiert.
 - [x] Neon-Theme mit kontraststarker Akzentfarbe und farbbänder ohne negative Abstände ergänzt.
 - [x] Build-Defaults mit sicheren Rückfall-Callbacks für Startroutine, Warn-/Fehler-Ampel und Tests hinterlegt.
+- [x] Qualitätssuite (pytest) als Teil der Startroutine laienfreundlich eingebunden.
+- [x] Großtext-Umschalter (150 %) im Header angebunden und mit Zoom-Manager verdrahtet.
+- [x] Selbstprüfung meldet Klartext-Status (OK/Warnung/Fehler) statt technischer Details.
 - [x] Neon-Theme und Modul-Farbbänder für klare visuelle Orientierung ergänzt.
 - [x] Build-Defaults mit sicheren Rückfall-Callbacks für Startroutine und Tests hinterlegt.
