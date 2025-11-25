@@ -21,6 +21,7 @@ class ThemeManager:
         "Blau": {"background": "#e6f0ff", "foreground": "#102a43", "accent": "#2c5282"},
         "Wald": {"background": "#0b3d2e", "foreground": "#e5f4ec", "accent": "#40e0d0"},
         "Neon": {"background": "#0a0f1f", "foreground": "#e0e7ff", "accent": "#3b82f6"},
+        "Neon": {"background": "#0a0f1f", "foreground": "#e0e7ff", "accent": "#7c3aed"},
     }
 
     def __init__(self, root: tk.Tk) -> None:
