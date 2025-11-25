@@ -424,6 +424,24 @@ class ControlCenterApp:
             "Debug/Logging-Modus aktiv" if enabled else "Debug/Logging-Modus aus"
         )
 
+    def _update_log_level_filter(self, level_name: str) -> None:
+        try:
+            label = self._logging_manager.set_level_threshold(level_name)
+        except ValueError as exc:
+            self._set_status(str(exc))
+            return
+        self._set_status(f"Log-Filter aktiv: zeigt ab {label}")
+
+    def _on_theme_changed(self, theme_name: str, report: dict[str, str]) -> None:
+        if self._layout.header_controls:
+            self._layout.header_controls.set_accessibility_status(
+                {"status": report.get("status", "warnung"), "details": report.get("details", "")}
+            )
+        detail = report.get("details", "")
+        summary = detail or "Theme gewechselt"
+        self._logging_manager.log_system(f"Theme {theme_name}: {summary}")
+        self._set_status(f"Theme {theme_name} aktiv – {summary}")
+
     def _toggle_large_text(self, enabled: bool) -> None:
         self._large_text.set(enabled)
         target_scale = 1.5 if enabled else 1.0
@@ -520,6 +538,16 @@ class ControlCenterApp:
         if tips and self._layout.header_controls:
             self._layout.header_controls.status_var.set(tips[0])
 
+    def _refresh_accessibility_status(self) -> None:
+        if not self._layout.header_controls:
+            return
+        report = self._theme_manager.last_contrast_report
+        if not report:
+            report = self._theme_manager.accessibility_report()
+        self._layout.header_controls.set_accessibility_status(
+            {"status": report.get("status", "warnung"), "details": report.get("details", "")}
+        )
+
     def _calculate_progress(self, status: dict[str, str]) -> tuple[int, str]:
         ok_states = {"ok", "vorhanden", "automatisch erstellt", "übersprungen", "erstellt"}
         items = [(k, v) for k, v in status.items() if not k.endswith("_info")]
@@ -556,11 +584,14 @@ class ControlCenterApp:
             genre_summary_provider=self._genre_summary,
             on_add_genre=self._add_genre_profile,
             snippet_store=self._snippet_store,
+            on_change_log_level=self._update_log_level_filter,
+            on_theme_changed=self._on_theme_changed,
         )
         self._init_menu()
         self._attach_validated_inputs()
         self._zoom_manager.bind_shortcuts(status_callback=self._set_status)
         self._theme_manager.apply_theme("Aurora")
+        self._refresh_accessibility_status()
         self._logging_manager.start_logging()
         self._logging_manager.log_system("Klick&Start-Routine bereit – alles automatisiert")
         self._set_status("Zoom bereit: Strg + Mausrad verändert Schriftgrößen barrierefrei.")

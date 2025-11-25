@@ -89,12 +89,20 @@ class ThemeManager:
         },
     }
 
-    def __init__(self, root: tk.Tk) -> None:
+    def __init__(self, root: tk.Tk, *, minimum_contrast_ratio: float = 4.5) -> None:
+        if minimum_contrast_ratio <= 0:
+            raise ValueError("minimum_contrast_ratio muss größer als 0 sein")
         self.root = root
         self.style = ttk.Style(root)
         self.current_theme = "Aurora"
         self.invert_text = False
         self.current_surfaces: dict[str, object] = {}
+        self.minimum_contrast_ratio = float(minimum_contrast_ratio)
+        self.last_contrast_report: dict[str, str] = {
+            "status": "warnung",
+            "details": "Kontrast noch nicht geprüft",
+            "applied": self.current_theme,
+        }
         default_font = tkfont.nametofont("TkDefaultFont")
         text_font = tkfont.nametofont("TkTextFont")
         fixed_font = tkfont.nametofont("TkFixedFont")
@@ -176,9 +184,53 @@ class ThemeManager:
         self.style.configure("Sidebar.TLabelframe", padding=8)
         self.style.configure("Sidebar.TLabelframe.Label", font=self.fonts["status"])
 
-    def apply_theme(self, name: str) -> None:
-        theme = self.THEMES.get(name, self.THEMES["Hell"])
-        self.current_theme = name if name in self.THEMES else "Hell"
+    def _theme_contrast_state(self, name: str, minimum_ratio: float | None = None) -> dict[str, str]:
+        """Return a per-theme contrast assessment for the guard."""
+
+        palette = self.THEMES.get(name)
+        if not palette:
+            return {
+                "status": "warnung",
+                "details": f"Unbekanntes Theme '{name}' – Standard aktiv",
+                "applied": "Hell",
+            }
+        minimum = self.minimum_contrast_ratio if minimum_ratio is None else float(minimum_ratio)
+        fg_ratio = self._contrast_ratio(palette["background"], palette["foreground"])
+        accent_ratio = self._contrast_ratio(palette["background"], palette["accent"])
+        ok_fg = fg_ratio >= minimum
+        ok_accent = accent_ratio >= minimum
+        status = "ok" if ok_fg and ok_accent else "warnung"
+        detail = (
+            "Kontrast geprüft – lesbar"
+            if status == "ok"
+            else f"Kontrast schwach (Text {fg_ratio:.2f}, Akzent {accent_ratio:.2f})"
+        )
+        return {"status": status, "details": detail, "applied": name}
+
+    def _enforce_theme_contrast(self, name: str) -> tuple[str, dict[str, str]]:
+        """Ensure a safe theme is active if the requested one is too weak."""
+
+        report = self._theme_contrast_state(name)
+        applied = report["applied"]
+        if report["status"] == "ok":
+            self.last_contrast_report = report
+            return applied, report
+
+        fallback = "Kontrast"
+        fallback_report = self._theme_contrast_state(fallback)
+        combined_details = f"{report['details']}; automatisch auf {fallback} gewechselt"
+        status = "warnung" if fallback_report["status"] == "ok" else "fehler"
+        self.last_contrast_report = {
+            "status": status,
+            "details": combined_details,
+            "applied": fallback_report["applied"],
+        }
+        return fallback_report["applied"], self.last_contrast_report
+
+    def apply_theme(self, name: str) -> dict[str, str]:
+        applied_theme, contrast_report = self._enforce_theme_contrast(name)
+        theme = self.THEMES.get(applied_theme, self.THEMES["Hell"])
+        self.current_theme = applied_theme if applied_theme in self.THEMES else "Hell"
         self.invert_text = bool(theme.get("invert_text", False))
         bg = theme["background"]
         fg = theme["foreground"]
@@ -276,6 +328,7 @@ class ThemeManager:
 
         for child in self.root.winfo_children():
             self._propagate_bg(child, bg)
+        return contrast_report
 
     def status_colors(self, ok: bool) -> tuple[str, str]:
         palette = self.palette

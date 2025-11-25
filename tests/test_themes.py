@@ -79,6 +79,22 @@ class ThemeAccessibilityTests(unittest.TestCase):
             )
         root.destroy()
 
+    def test_theme_guard_falls_back_on_low_contrast(self):
+        try:
+            root = tk.Tk()
+            root.withdraw()
+        except tk.TclError:
+            self.skipTest("Tk nicht verfügbar")
+        manager = ThemeManager(root)
+        manager.THEMES["Low"] = {"background": "#ffffff", "foreground": "#ffffff", "accent": "#ffffff"}
+        try:
+            report = manager.apply_theme("Low")
+            self.assertEqual(report["status"], "warnung")
+            self.assertEqual(manager.current_theme, "Kontrast")
+        finally:
+            manager.THEMES.pop("Low", None)
+            root.destroy()
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
