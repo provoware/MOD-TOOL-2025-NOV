@@ -14,3 +14,6 @@ Fortschritt: 64% (9/14 Aufgaben erledigt)
 - [ ] Mehr Laien-Hinweise im UI einblenden (Tooltipps, klare Fehlermeldungen).
 - [ ] Automatische Formatierung (black/ruff) optional als Zusatzprüfung ergänzen.
 - [ ] Fortschrittsanzeige im UI mit Prozentwert anreichern.
+- [ ] Zusätzliche Plugins bereitstellen und dokumentieren.
+- [ ] Barrierefreiheit weiter testen (Screenreader, Tastaturnavigation vertiefen).
+- [ ] Mehr Laien-Hinweise im UI einblenden (Tooltipps, klare Fehlermeldungen).
