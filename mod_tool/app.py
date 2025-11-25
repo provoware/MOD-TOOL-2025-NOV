@@ -168,6 +168,9 @@ class ControlCenterApp:
             self._layout.header_controls.stat_var.set(
                 f"Status {source}: Pfade ok, Syntax ok, Tests {tests_label}"
             )
+            tests_detail = repairs.get("tests_info")
+            if tests_detail:
+                self._logging_manager.log_system(f"Testdetails: {tests_detail}")
             progress, note = self._calculate_progress(repairs)
             self._layout.header_controls.set_progress(progress, note)
             self._log_guidance_notes()

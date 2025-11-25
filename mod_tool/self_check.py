@@ -19,6 +19,7 @@ class SelfCheck:
         required_paths: Iterable[pathlib.Path | str],
         base_path: pathlib.Path | None = None,
         manifest_path: pathlib.Path | str | None = None,
+        test_timeout_seconds: int = 30,
     ) -> None:
         base = pathlib.Path(base_path) if base_path else pathlib.Path.cwd()
         if not base.exists():  # pragma: no cover - defensive guard
@@ -31,6 +32,7 @@ class SelfCheck:
                 target = base / target
             self.required_paths.append(target)
         self.manifest_path = pathlib.Path(manifest_path) if manifest_path else self.base_path / "manifest.json"
+        self.test_timeout_seconds = int(test_timeout_seconds)
 
     def ensure_required_paths(self) -> dict[str, str]:
         """Create missing folders and confirm availability."""
@@ -95,20 +97,25 @@ class SelfCheck:
         return ", ".join(reports)
 
     def run_quick_tests(self) -> tuple[str, str]:
-        """Execute lightweight unit tests if available."""
+        """Execute lightweight unit tests if available and time-bound for responsiveness."""
 
         tests_dir = self.base_path / "tests"
         if not tests_dir.exists():
             return "übersprungen", "Keine Tests gefunden"
 
-        result = subprocess.run(
-            [sys.executable, "-m", "unittest", "discover", "-s", str(tests_dir)],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "unittest", "discover", "-s", str(tests_dir)],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=max(self.test_timeout_seconds, 1),
+            )
+        except subprocess.TimeoutExpired:
+            return "abgebrochen", f"Tests nach {self.test_timeout_seconds}s wegen Timeout beendet"
+
         status = "ok" if result.returncode == 0 else "fehlgeschlagen"
-        output = result.stdout.strip() or result.stderr.strip()
+        output = result.stdout.strip() or result.stderr.strip() or "Keine Testausgabe vorhanden"
         return status, output
 
     def full_check(self) -> dict[str, str]:
@@ -118,8 +125,9 @@ class SelfCheck:
         code_ok = self.run_code_format_check()
         path_status["code_format"] = "ok" if code_ok else "kompilierungswarnung"
 
-        tests_status, _ = self.run_quick_tests()
+        tests_status, tests_info = self.run_quick_tests()
         path_status["tests"] = tests_status
+        path_status["tests_info"] = tests_info
         path_status["linting"] = self.run_optional_linters()
         manifest_status, manifest_msg = self.ensure_manifest_file()
         path_status["manifest"] = manifest_status
