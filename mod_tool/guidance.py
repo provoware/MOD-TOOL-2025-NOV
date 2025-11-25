@@ -83,6 +83,22 @@ class StartupGuide:
                 ),
                 command="MOD_TOOL_DEBUG=1 python main.py",
             ),
+            GuidanceItem(
+                title="Log-Filter anpassen",
+                description=(
+                    "Wähle im Debug-Bereich den passenden Log-Level (z. B. Warnungen) – "
+                    "die Anzeige blendet niedrigere Stufen aus, ohne Prozesse zu stoppen."
+                ),
+                command="python -m unittest tests.test_logging_manager",
+            ),
+            GuidanceItem(
+                title="Sicheres Theme wählen",
+                description=(
+                    "Themes werden automatisch auf Kontrast geprüft (Farbdifferenz). "
+                    "Bei schwachem Kontrast schaltet der Wächter auf das Kontrast-Theme."
+                ),
+                command="python - <<'PY'\nfrom mod_tool.themes import ThemeManager\nprint(ThemeManager.accessibility_report())\nPY",
+            ),
         ]
 
     def render_for_logging(self) -> list[str]:

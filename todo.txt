@@ -69,11 +69,11 @@ Fortschritt: 0% (0/9 neue Aufgaben geplant)
 Fortschritt: 0% (0/6 neue Aufgaben geplant)
 - [x] Layout-Guides für Header/Navigation/2x2-Arbeitsfeld/Utility/Footer als Schnellhilfe ergänzt.
 - [x] Manifest-Abschnitte für Navigation und Utility-Leiste dokumentiert und an Themes gekoppelt.
-- [ ] Kontrast-Wächter einbauen: Themes beim Wechsel auf Mindestkontrast prüfen und bei schwachem Wert automatisch auf ein sicheres Theme umschalten.
+- [x] Kontrast-Wächter einbauen: Themes beim Wechsel auf Mindestkontrast prüfen und bei schwachem Wert automatisch auf ein sicheres Theme umschalten.
 - [ ] Start/Monitor entkoppeln: Hintergrund-Monitor stoppbar machen und Startroutine in einen eigenen Service auslagern.
 - [ ] Plugin-Schema prüfen: Erwartete Hooks validieren, ungültige Plugins blocken und Status klar loggen.
 - [ ] Manifest versionieren und im UI anzeigen, damit Nutzer den Stand der Layout-/Strukturdatei sehen.
-- [ ] Log-Level-Umschalter ergänzen (Info/Warnung/Fehler) und Debug-Ansicht filtern.
+- [x] Log-Level-Umschalter ergänzen (Info/Warnung/Fehler) und Debug-Ansicht filtern.
 - [ ] Headless UI-Screenshot-Test in die Test-Suite aufnehmen, um Layoutänderungen früh zu erkennen.
 - [ ] Drag-Handles der Paned-Fenster auf Tastaturbedienung testen und Shortcut-Legende dokumentieren.
 - [ ] Querverbindungs-Validator erweitern: Genre-Profil-Verlinkungen in To-dos/Snippets automatisch markieren.

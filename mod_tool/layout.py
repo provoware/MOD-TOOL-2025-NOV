@@ -33,6 +33,7 @@ class HeaderControls:
         on_validate_links: Callable[[], None],
         on_reflow_workspaces: Callable[[], None],
         on_toggle_invert: Callable[[], None],
+        on_theme_changed: Callable[[str, dict[str, str]], None] | None = None,
     ) -> None:
         self.frame = ttk.Frame(parent, padding=8)
         self.theme_manager = theme_manager
@@ -45,6 +46,7 @@ class HeaderControls:
         self.on_validate_links = on_validate_links
         self.on_reflow_workspaces = on_reflow_workspaces
         self.on_toggle_invert = on_toggle_invert
+        self.on_theme_changed = on_theme_changed
         self.theme_choice = tk.StringVar(value=theme_manager.current_theme)
         self.status_var = tk.StringVar(value="Bereit – Auto-Checks aktiv")
         self.stat_var = tk.StringVar(value="System gesund")
@@ -162,6 +164,18 @@ class HeaderControls:
 
     def _on_theme_change(self, event: object) -> None:  # pragma: no cover - UI binding
         self.theme_manager.apply_theme(self.theme_choice.get())
+        self._update_accessibility_status()
+        if self.on_theme_changed:
+            self.on_theme_changed(
+                self.theme_manager.current_theme,
+                self.theme_manager.last_contrast_report,
+            )
+
+    def _update_accessibility_status(self) -> None:
+        report = self.theme_manager.last_contrast_report or self.theme_manager.accessibility_report()
+        self.set_accessibility_status(
+            {"status": report.get("status", "warnung"), "details": report.get("details", "")}
+        )
 
     def _show_help(self) -> None:  # pragma: no cover - UI binding
         self.status_var.set(
@@ -732,6 +746,8 @@ class DashboardLayout:
         genre_summary_provider: Callable[[], Sequence[str]] | None = None,
         on_add_genre: Callable[[str, str, str], bool] | None = None,
         snippet_store: SnippetStore | None = None,
+        on_change_log_level: Callable[[str], None] | None = None,
+        on_theme_changed: Callable[[str, dict[str, str]], None] | None = None,
     ) -> None:
         self.theme_manager.configure_styles()
         self.root.columnconfigure(0, weight=1)
@@ -759,6 +775,8 @@ class DashboardLayout:
         on_toggle_todo = on_toggle_todo or (lambda _id, _state: None)
         genre_summary_provider = genre_summary_provider or (lambda: ("Keine Einträge",))
         on_add_genre = on_add_genre or (lambda *_args: False)
+        on_change_log_level = on_change_log_level or (lambda _level: None)
+        on_theme_changed = on_theme_changed or (lambda _theme, _report: None)
 
         self.header_controls = HeaderControls(
             self.root,
@@ -772,6 +790,7 @@ class DashboardLayout:
             on_validate_links,
             on_reflow_workspaces,
             on_toggle_invert,
+            on_theme_changed,
         )
         self.header_controls.build()
         report = self.theme_manager.accessibility_report()
@@ -976,6 +995,20 @@ class DashboardLayout:
         info_block.grid(row=0, column=2, padx=6, sticky="nsew")
 
         self.logging_manager.attach(log_block)
+        self.log_level_var = tk.StringVar(value="INFO")
+        ttk.Label(debug_block, text="Log-Filter (Debug/Info/Warn/Fehler)").pack(anchor="w")
+        level_box = ttk.Combobox(
+            debug_block,
+            values=("DEBUG", "INFO", "WARNING", "ERROR"),
+            textvariable=self.log_level_var,
+            state="readonly",
+        )
+        level_box.pack(fill=tk.X, pady=(0, 6))
+        level_box.bind(
+            "<<ComboboxSelected>>",
+            lambda _event: on_change_log_level(self.log_level_var.get()),
+        )
+        on_change_log_level(self.log_level_var.get())
         ttk.Label(debug_block, text="Debugger-Modus bereit – Eingriffe protokolliert.").pack(anchor="w")
         self.info_label = ttk.Label(
             info_block,
