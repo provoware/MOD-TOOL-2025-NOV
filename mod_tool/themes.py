@@ -20,6 +20,7 @@ class ThemeManager:
         "Kontrast": {"background": "#000000", "foreground": "#ffffff", "accent": "#ffd166"},
         "Blau": {"background": "#e6f0ff", "foreground": "#102a43", "accent": "#2c5282"},
         "Wald": {"background": "#0b3d2e", "foreground": "#e5f4ec", "accent": "#40e0d0"},
+        "Neon": {"background": "#0a0f1f", "foreground": "#e0e7ff", "accent": "#7c3aed"},
     }
 
     def __init__(self, root: tk.Tk) -> None:
@@ -75,7 +76,12 @@ class ThemeManager:
         self.style.configure("TCombobox", fieldbackground="white")
         self.style.configure("Treeview", fieldbackground=bg, bordercolor=accent)
         self.style.configure("TCheckbutton", background=bg, foreground=fg)
-        self.style.map("TButton", background=[("active", accent)], foreground=[("active", fg)])
+        self.style.map(
+            "TButton",
+            background=[("active", accent)],
+            foreground=[("active", fg)],
+            focuscolor=[("focus", accent)],
+        )
         self.style.map("TCheckbutton", focuscolor=[("active", accent)])
         for style_name in ("Pane.TLabelframe", "Note.TLabelframe", "Sidebar.TLabelframe"):
             self.style.configure(style_name, background=bg, foreground=fg, bordercolor=accent)
