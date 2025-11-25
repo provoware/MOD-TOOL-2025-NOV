@@ -4,10 +4,8 @@
 - [x] Automatische Selbstprüfung (Ordner prüfen/erstellen, Syntax-Check) integrieren.
 - [x] Developer-Doku mit Best Practices und einfachen Begriffserklärungen anlegen.
 - [x] Autostart mit virtueller Umgebung und automatischer Installation bauen.
+- [x] Klick-&-Start-Routine mit Schnellprüfung und Debug-Umschalter ergänzen.
+- [x] CI-Workflow für Syntax- und Unittests hinterlegen.
 - [ ] Zusätzliche Plugins bereitstellen und dokumentieren.
-- [ ] CI-Workflow für Format/Lint hinzufügen (z. B. ruff/black).
 - [ ] Barrierefreiheit weiter testen (Screenreader, Tastaturnavigation vertiefen).
 - [ ] Mehr Laien-Hinweise im UI einblenden (Tooltipps, klare Fehlermeldungen).
-- [ ] Zusätzliche Plugins bereitstellen und dokumentieren.
-- [ ] CI-Workflow für Format/Lint hinzufügen (z. B. ruff/black).
-- [ ] Barrierefreiheit weiter testen (Screenreader, Tastaturnavigation vertiefen).

@@ -6,12 +6,12 @@
 - Live-Logging über eine Queue, sichere Guard-Funktionen (`guarded_action`) und Selbstheilung (`SelfCheck`).
 - Plugin-fähigkeit über den `plugins/`-Ordner (Python-Module mit optionaler `on_load`-Funktion).
 - Vollautomatische Prüfungen beim Start: Verzeichnis-Existenz, Syntax-Check via `compileall`.
+- Klick-&-Start-Routine im Header: löst Selbstprüfung, Plugin-Laden und Tests aus und meldet den Status in Klartext.
 
 ## Projektstruktur
 - `main.py`: Startet die GUI über `ControlCenterApp` und ruft die Startroutine auf.
 - `mod_tool/bootstrap.py`: Autostart (virtuelle Umgebung, Abhängigkeits-Installation,
   Selbstprüfung) mit laienfreundlichem Feedback.
-- `main.py`: Startet die GUI über `ControlCenterApp`.
 - `mod_tool/app.py`: Orchestriert Themes, Logging, Layout, Plugins und Selbstprüfungen.
 - `mod_tool/layout.py`: Baut Header, 2x2-Arbeitsbereich und Fußleiste auf.
 - `mod_tool/themes.py`: Enthält die fünf barrierefreien Themes.

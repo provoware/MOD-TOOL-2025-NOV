@@ -11,7 +11,6 @@ class SelfCheckTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             missing = pathlib.Path(tmp_dir) / "plugins"
             check = SelfCheck([missing], base_path=pathlib.Path(tmp_dir))
-            check = SelfCheck([missing])
             result = check.ensure_required_paths()
             self.assertEqual(result[str(missing)], "automatisch erstellt")
             self.assertTrue(missing.exists())
@@ -26,11 +25,11 @@ class SelfCheckTests(unittest.TestCase):
             try:
                 os.chdir(dummy_root)
                 check = SelfCheck([dummy_root / "logs"], base_path=dummy_root)
-                check = SelfCheck([dummy_root / "logs"])
                 result = check.full_check()
             finally:
                 os.chdir(old_cwd)
             self.assertIn(result["code_format"], {"ok", "kompilierungswarnung"})
+            self.assertIn(result["tests"], {"ok", "fehlgeschlagen", "übersprungen"})
 
 
 if __name__ == "__main__":  # pragma: no cover
