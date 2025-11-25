@@ -60,6 +60,39 @@ class SelfCheck:
             return False
         return bool(compileall.compile_dir(str(target), quiet=1))
 
+    def run_optional_linters(self) -> str:
+        """Run optional formatters/linters when available without breaking flow."""
+
+        available_tools: list[str] = []
+        for tool in ("ruff", "black"):
+            try:
+                result = subprocess.run(
+                    [sys.executable, "-m", tool, "--version"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+            except FileNotFoundError:
+                continue
+            if result.returncode == 0:
+                available_tools.append(tool)
+
+        if not available_tools:
+            return "keine optionalen Lint-Tools gefunden"
+
+        reports: list[str] = []
+        for tool in available_tools:
+            cmd = [sys.executable, "-m", tool]
+            if tool == "ruff":
+                cmd += ["check", str(self.base_path / "mod_tool")]
+            elif tool == "black":
+                cmd += ["--check", str(self.base_path / "mod_tool")]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            status = "ok" if result.returncode == 0 else "warnung"
+            reports.append(f"{tool}: {status}")
+        return ", ".join(reports)
+
     def run_quick_tests(self) -> tuple[str, str]:
         """Execute lightweight unit tests if available."""
 
@@ -86,6 +119,7 @@ class SelfCheck:
 
         tests_status, _ = self.run_quick_tests()
         path_status["tests"] = tests_status
+        path_status["linting"] = self.run_optional_linters()
         manifest_status, manifest_msg = self.ensure_manifest_file()
         path_status["manifest"] = manifest_status
         if manifest_msg:

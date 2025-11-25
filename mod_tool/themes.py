@@ -23,6 +23,7 @@ class ThemeManager:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.style = ttk.Style(root)
+        self.current_theme = "Hell"
 
     @property
     def theme_names(self) -> list[str]:
@@ -34,15 +35,17 @@ class ThemeManager:
 
     def apply_theme(self, name: str) -> None:
         theme = self.THEMES.get(name, self.THEMES["Hell"])
+        self.current_theme = name if name in self.THEMES else "Hell"
         bg = theme["background"]
         fg = theme["foreground"]
         accent = theme["accent"]
 
         self.root.configure(bg=bg)
-        for element in ["TFrame", "TLabel", "TLabelFrame", "TButton", "TCombobox"]:
+        for element in ["TFrame", "TLabel", "TLabelFrame", "TButton", "TCombobox", "Treeview"]:
             self.style.configure(element, background=bg, foreground=fg)
         self.style.configure("TButton", padding=6, relief="raised")
         self.style.configure("TCombobox", fieldbackground="white")
+        self.style.configure("Treeview", fieldbackground=bg, bordercolor=accent)
         self.style.map("TButton", background=[("active", accent)])
 
         for child in self.root.winfo_children():
