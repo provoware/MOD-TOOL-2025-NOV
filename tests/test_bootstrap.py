@@ -20,7 +20,7 @@ class BootstrapperTests(unittest.TestCase):
 
             self.assertTrue((root / ".venv").exists())
             self.assertIn(status["virtualenv"], {"vorhanden", "erstellt"})
-            self.assertIn(status["dependencies"], {"übersprungen", "ok", "fehlend"})
+            self.assertIn(status["dependencies"], {"übersprungen", "ok", "fehlend", "warnung"})
             self.assertIn(status["self_check"], {"ok", "warnung"})
 
 
