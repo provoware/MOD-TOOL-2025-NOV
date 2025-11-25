@@ -8,3 +8,6 @@
 - [ ] CI-Workflow für Format/Lint hinzufügen (z. B. ruff/black).
 - [ ] Barrierefreiheit weiter testen (Screenreader, Tastaturnavigation vertiefen).
 - [ ] Mehr Laien-Hinweise im UI einblenden (Tooltipps, klare Fehlermeldungen).
+- [ ] Zusätzliche Plugins bereitstellen und dokumentieren.
+- [ ] CI-Workflow für Format/Lint hinzufügen (z. B. ruff/black).
+- [ ] Barrierefreiheit weiter testen (Screenreader, Tastaturnavigation vertiefen).

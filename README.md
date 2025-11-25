@@ -9,6 +9,15 @@ Modulare, barrierearme Steuerzentrale mit Live-Logging, automatischer Selbstprü
 - Pflichtordner (`logs/`, `plugins/`, `config/`) werden repariert oder erstellt.
 - Ein Syntax-Check (`compileall`, prüft Quelltext) läuft vor dem GUI-Start.
 - Hintergrundüberwachung liefert Live-Status im Logging-Panel.
+## Starten
+```bash
+python main.py
+```
+
+## Automatische Prüfungen
+- Beim Start werden Pflichtordner (`logs/`, `plugins/`, `config/`) angelegt.
+- Syntax-Check via `compileall` sichert Konsistenz.
+- Hintergrundüberwachung protokolliert Gesundheitsmeldungen im Logging-Panel.
 
 ## Tests
 ```bash

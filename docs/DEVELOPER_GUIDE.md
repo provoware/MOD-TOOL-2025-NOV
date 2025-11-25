@@ -11,6 +11,7 @@
 - `main.py`: Startet die GUI über `ControlCenterApp` und ruft die Startroutine auf.
 - `mod_tool/bootstrap.py`: Autostart (virtuelle Umgebung, Abhängigkeits-Installation,
   Selbstprüfung) mit laienfreundlichem Feedback.
+- `main.py`: Startet die GUI über `ControlCenterApp`.
 - `mod_tool/app.py`: Orchestriert Themes, Logging, Layout, Plugins und Selbstprüfungen.
 - `mod_tool/layout.py`: Baut Header, 2x2-Arbeitsbereich und Fußleiste auf.
 - `mod_tool/themes.py`: Enthält die fünf barrierefreien Themes.

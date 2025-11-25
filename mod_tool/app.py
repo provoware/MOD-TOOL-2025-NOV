@@ -34,6 +34,7 @@ class ControlCenterApp:
     """
 
     def __init__(self, startup_status: dict[str, str] | None = None) -> None:
+    def __init__(self) -> None:
         self._root = self._init_root()
         self._theme_manager = ThemeManager(self._root)
         self._logging_manager = LoggingManager(self._root)
@@ -101,6 +102,11 @@ def main(argv: list[str] | None = None) -> int:
     startup_status = bootstrap.run()
     try:
         ControlCenterApp(startup_status=startup_status).run()
+    """CLI entry point for the control center."""
+
+    _ = argv or sys.argv[1:]
+    try:
+        ControlCenterApp().run()
     except RuntimeError as exc:  # pragma: no cover - GUI failure
         print(exc, file=sys.stderr)
         return 1

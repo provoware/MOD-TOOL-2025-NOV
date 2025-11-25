@@ -15,6 +15,8 @@ class SelfCheck:
             raise ValueError("Basisverzeichnis fehlt oder ist ungültig")
         self.base_path = base
         self.required_paths = [base / pathlib.Path(path) for path in required_paths]
+    def __init__(self, required_paths: Iterable[str]) -> None:
+        self.required_paths = [pathlib.Path(path) for path in required_paths]
 
     def ensure_required_paths(self) -> dict[str, str]:
         results: dict[str, str] = {}
@@ -38,6 +40,7 @@ class SelfCheck:
 
         target = self.base_path / "mod_tool"
         return compileall.compile_dir(str(target), quiet=1)
+        return compileall.compile_dir("mod_tool", quiet=1)
 
     def full_check(self) -> dict[str, str]:
         path_status = self.ensure_required_paths()
