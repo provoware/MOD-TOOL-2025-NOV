@@ -1,6 +1,7 @@
 # MOD-TOOL-2025-NOV – Steuerzentrale
 
 Modulare, barrierearme Steuerzentrale mit Live-Logging, automatischer Selbstprüfung und Plugin-Unterstützung.
+Jetzt mit "Klick & Start"-Routine, Debug/Logging-Umschalter und Schnellcheck-Schaltfläche für sofortige Sichtbarkeit.
 
 ## Starten (mit Autopilot)
 - `python main.py` reicht: Das Tool legt automatisch eine virtuelle Umgebung
@@ -8,6 +9,8 @@ Modulare, barrierearme Steuerzentrale mit Live-Logging, automatischer Selbstprü
   Abhängigkeiten aus `requirements.txt`. Fortschritt wird im Terminal angezeigt.
 - Pflichtordner (`logs/`, `plugins/`, `config/`) werden repariert oder erstellt.
 - Ein Syntax-Check (`compileall`, prüft Quelltext) läuft vor dem GUI-Start.
+- Die Klick-&-Start-Schaltfläche im Header triggert alle Prüfungen erneut (inkl. Plugins & Tests)
+  und protokolliert verständlich.
 - Hintergrundüberwachung liefert Live-Status im Logging-Panel.
 ## Starten
 ```bash
