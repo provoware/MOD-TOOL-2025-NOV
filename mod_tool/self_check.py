@@ -96,6 +96,29 @@ class SelfCheck:
             reports.append(f"{tool}: {status}")
         return ", ".join(reports)
 
+    def run_dependency_probe(self) -> tuple[str, str]:
+        """Validate installed dependencies with a time-bounded ``pip check`` run."""
+
+        timeout = max(self.test_timeout_seconds // 2, 5)
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "check"],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=timeout,
+            )
+        except FileNotFoundError:
+            return "übersprungen", "pip nicht verfügbar – Abhängigkeitsprüfung ausgelassen"
+        except subprocess.TimeoutExpired:
+            return "warnung", f"Abhängigkeitsprüfung nach {timeout}s gestoppt (Timeout)"
+
+        if result.returncode == 0:
+            return "ok", "Abhängigkeiten laut pip check konsistent"
+
+        detail = (result.stderr.strip() or result.stdout.strip() or "pip check meldete Hinweise").splitlines()[0]
+        return "warnung", f"pip check meldet Hinweise: {detail}"
+
     def run_quick_tests(self) -> tuple[str, str]:
         """Execute lightweight unit tests if available and time-bound for responsiveness."""
 
@@ -163,6 +186,9 @@ class SelfCheck:
         path_status["qualität"] = quality_status
         path_status["qualität_info"] = quality_info
         path_status["linting"] = self.run_optional_linters()
+        dep_status, dep_info = self.run_dependency_probe()
+        path_status["abhängigkeiten"] = dep_status
+        path_status["abhängigkeiten_info"] = dep_info
         manifest_status, manifest_msg = self.ensure_manifest_file()
         path_status["manifest"] = manifest_status
         if manifest_msg:
@@ -239,5 +265,9 @@ class SelfCheck:
             detail = detail or "Qualitätssuite hat Hinweise ausgegeben"
         if key == "linting" and value.startswith("keine"):
             detail = detail or "Linting ist optional – kein Handlungsbedarf"
+        if key == "abhängigkeiten" and value == "übersprungen":
+            detail = detail or "pip check ist optional – kann später nachinstalliert werden"
+        if key == "abhängigkeiten" and value == "warnung":
+            detail = detail or "Bitte Fehlermeldung aus pip check prüfen"
         detail_text = f" – {detail}" if detail else ""
         return f"{severity}: {readable}{detail_text}"

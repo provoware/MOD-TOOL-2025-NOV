@@ -54,3 +54,5 @@ Fortschritt: 100% (39/39 Aufgaben erledigt)
 - [x] Kachel-Navigation mit Einstellungsbereich wie Screenshot umgesetzt und barrierefrei beschrieben.
 
 - [x] Kombinationsleitfaden für System/Modul/UI-Schichten mit Laienhinweisen dokumentiert.
+- [x] Pip-Check für Abhängigkeiten in die Startroutine eingebaut und klar protokolliert.
+- [x] Selbstcheck um Abhängigkeitsvalidierung samt Unit-Tests erweitert.

@@ -113,8 +113,26 @@ class Bootstrapper:
             self._feedback("Requirements-Datei ist leer – Installation nicht nötig.")
             return "übersprungen"
 
-        cmd = [str(python_bin), "-m", "pip", "install", "--upgrade", "pip", "-r", str(self.requirements_file)]
-        return "ok" if self._run_command(cmd, "Abhängigkeiten installiert") else "fehler"
+        pip_ready = self._run_command([str(python_bin), "-m", "pip", "--version"], "pip bereit")
+        if not pip_ready:
+            self._run_command([str(python_bin), "-m", "ensurepip", "--upgrade"], "pip nachinstalliert")
+        cmd = [
+            str(python_bin),
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "pip",
+            "-r",
+            str(self.requirements_file),
+        ]
+        installed = self._run_command(cmd, "Abhängigkeiten installiert")
+        if not installed:
+            return "fehler"
+
+        dep_status, dep_info = self.self_check.run_dependency_probe()
+        self._feedback(f"Abhängigkeitsprüfung: {dep_info}")
+        return dep_status if dep_status != "ok" else "ok"
 
     def self_check_report(self) -> str:
         """Run self-healing checks for folders and code format."""

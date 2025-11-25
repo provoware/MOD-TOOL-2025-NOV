@@ -1,7 +1,9 @@
 import os
 import pathlib
+import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 from mod_tool.self_check import SelfCheck
 
@@ -25,7 +27,10 @@ class SelfCheckTests(unittest.TestCase):
             try:
                 os.chdir(dummy_root)
                 check = SelfCheck([dummy_root / "logs"], base_path=dummy_root)
-                result = check.full_check()
+                with mock.patch.object(
+                    SelfCheck, "run_dependency_probe", return_value=("ok", "pip check stub")
+                ):
+                    result = check.full_check()
             finally:
                 os.chdir(old_cwd)
             self.assertIn(result["code_format"], {"ok", "kompilierungswarnung"})
@@ -34,6 +39,7 @@ class SelfCheckTests(unittest.TestCase):
             self.assertIn(result["accessibility"], {"ok", "warnung"})
             self.assertIn("accessibility_notes", result)
             self.assertIn("tests_info", result)
+            self.assertIn(result["abhängigkeiten"], {"ok", "warnung", "übersprungen"})
             manifest_file = dummy_root / "manifest.json"
             self.assertTrue(manifest_file.exists())
 
@@ -63,6 +69,21 @@ class SelfCheckTests(unittest.TestCase):
 
         self.assertEqual(warning_status, "warnung")
         self.assertEqual(error_status, "fehler")
+
+    def test_dependency_probe_reports_status(self):
+        check = SelfCheck([pathlib.Path("logs")])
+        ok_result = subprocess.CompletedProcess(args=["pip"], returncode=0, stdout="", stderr="")
+        warn_result = subprocess.CompletedProcess(args=["pip"], returncode=1, stdout="", stderr="Konflikt")
+
+        with mock.patch("mod_tool.self_check.subprocess.run", return_value=ok_result):
+            status, info = check.run_dependency_probe()
+            self.assertEqual(status, "ok")
+            self.assertIn("konsistent", info)
+
+        with mock.patch("mod_tool.self_check.subprocess.run", return_value=warn_result):
+            status, info = check.run_dependency_probe()
+            self.assertEqual(status, "warnung")
+            self.assertIn("Konflikt", info)
 
 
 if __name__ == "__main__":  # pragma: no cover
