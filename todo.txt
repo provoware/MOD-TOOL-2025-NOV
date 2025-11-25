@@ -5,6 +5,7 @@ Fortschritt: 100% (29/29 Aufgaben erledigt)
 Fortschritt: 100% (29/29 Aufgaben erledigt)
 Fortschritt: 100% (26/26 Aufgaben erledigt)
 Fortschritt: 100% (23/23 Aufgaben erledigt)
+Fortschritt: 100% (39/39 Aufgaben erledigt)
 - [x] GUI-Grundgerüst mit Header, 4-Panels und dreigeteilter Fußleiste erstellen.
 - [x] Live-Logging mit Debug-Bereich und klaren Ereignismeldungen einbinden.
 - [x] Automatische Selbstprüfung (Ordner prüfen/erstellen, Syntax-Check) integrieren.
@@ -48,3 +49,6 @@ Fortschritt: 100% (23/23 Aufgaben erledigt)
 - [x] Neon-Themes kontrastoptimiert und automatische Kontrastprüfung auf 4.5:1 gehoben.
 - [x] Schriftgrößen und Farbkontraste nach WCAG überprüft und laienfreundlich hervorgehoben.
 - [x] Zusätzliche kontrastreiche Themes und Statusanzeige für Barrierefreiheit ergänzt.
+- [x] Themenpalette bereinigt, neue kontraststarke Varianten ergänzt und Tests automatisiert.
+- [x] Warnlogik im Selbstcheck geklärt, Eingaben validiert und Unit-Tests ergänzt.
+- [x] Kachel-Navigation mit Einstellungsbereich wie Screenshot umgesetzt und barrierefrei beschrieben.

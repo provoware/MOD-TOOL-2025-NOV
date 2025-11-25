@@ -631,9 +631,66 @@ class DashboardLayout:
 
         workspace_container = ttk.Frame(self.root, padding=8)
         workspace_container.grid(row=1, column=0, sticky="nsew")
-        workspace_container.columnconfigure(0, weight=0, minsize=220)
+        workspace_container.columnconfigure(0, weight=0, minsize=240)
         workspace_container.columnconfigure(1, weight=1)
+        workspace_container.columnconfigure(2, weight=0, minsize=260)
         workspace_container.rowconfigure(0, weight=1)
+
+        nav_column = ttk.Frame(workspace_container)
+        nav_column.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        nav_column.rowconfigure(1, weight=1)
+
+        nav_items = [
+            {
+                "label": "Übersicht",
+                "icon": "📊",
+                "description": "Startseite mit Status und Modulen.",
+                "command": on_show_index,
+            },
+            {
+                "label": "Genres",
+                "icon": "🎵",
+                "description": "Archiv und Profile pflegen.",
+                "command": lambda: self.refresh_genres(),
+            },
+            {
+                "label": "Vorlagen",
+                "icon": "📁",
+                "description": "Schnellzugriff auf Muster und Layouts.",
+                "command": on_choose_project,
+            },
+            {
+                "label": "Zufall",
+                "icon": "🎲",
+                "description": "Zufalls-Ideen oder Beispiele erzeugen.",
+                "command": on_health_check,
+            },
+            {
+                "label": "To-dos",
+                "icon": "✅",
+                "description": "Aufgaben sichtbar machen und abhaken.",
+                "command": lambda: self.refresh_todos(),
+            },
+            {
+                "label": "Editor",
+                "icon": "✏️",
+                "description": "Texte bearbeiten, speichern, prüfen.",
+                "command": on_start,
+            },
+            {
+                "label": "Sichern/Export",
+                "icon": "💾",
+                "description": "Backup oder Export starten.",
+                "command": on_export_notes,
+            },
+            {
+                "label": "Papierkorb",
+                "icon": "🗑️",
+                "description": "Aufräumen und löschen nach Kontrolle.",
+                "command": on_toggle_sidebar,
+            },
+        ]
+        self._build_navigation_panel(nav_column, nav_items)
 
         actions = {
             "Projekt wählen": on_choose_project,
@@ -643,13 +700,22 @@ class DashboardLayout:
             "Notizen exportieren": on_export_notes,
             "Hints bearbeiten": on_edit_hints,
         }
-        self.sidebar = Sidebar(workspace_container, actions=actions, info_provider=info_provider)
-        self.sidebar.grid(row=0, column=0, sticky="nsw", padx=(0, 8))
+        self.sidebar = Sidebar(nav_column, actions=actions, info_provider=info_provider)
+        self.sidebar.grid(row=1, column=0, sticky="nsw")
 
         workspace = ttk.Frame(workspace_container)
         workspace.grid(row=0, column=1, sticky="nsew")
         workspace.columnconfigure(0, weight=1)
         workspace.rowconfigure(2, weight=1)
+
+        settings_panel = self._build_settings_panel(
+            workspace_container,
+            on_start=on_start,
+            on_health_check=on_health_check,
+            on_toggle_debug=on_toggle_debug,
+            on_toggle_large_text=on_toggle_large_text,
+        )
+        settings_panel.grid(row=0, column=2, sticky="nsew", padx=(8, 0))
 
         self.note_panel = NotePanel(
             workspace,
@@ -823,3 +889,113 @@ class DashboardLayout:
                 accessibility_label="Unterer Bereich mit Debug-Status und Tipps",
             ),
         ]
+
+    def _build_navigation_panel(self, parent: ttk.Frame, nav_items: Sequence[dict[str, object]]) -> None:
+        if not nav_items:
+            raise ValueError("nav_items dürfen nicht leer sein")
+
+        nav_frame = ttk.LabelFrame(
+            parent,
+            text="Kachel-Navigation",
+            padding=10,
+            style="Sidebar.TLabelframe",
+            labelanchor="n",
+        )
+        nav_frame.grid(row=0, column=0, sticky="nsew")
+        nav_frame.columnconfigure(0, weight=1)
+
+        for idx, item in enumerate(nav_items):
+            label = item.get("label")
+            command = item.get("command")
+            description = item.get("description", "")
+            icon = item.get("icon", "•")
+            if not label or not callable(command):
+                raise ValueError("Jeder Navigationseintrag braucht Label und Funktion")
+            button = ttk.Button(nav_frame, text=f"{icon} {label}", command=command)
+            button.grid(row=idx * 2, column=0, sticky="ew", pady=(0, 2))
+            ttk.Label(
+                nav_frame,
+                text=description,
+                style="Helper.TLabel",
+                wraplength=200,
+                justify=tk.LEFT,
+            ).grid(row=idx * 2 + 1, column=0, sticky="w", pady=(0, 6))
+
+    def _build_settings_panel(
+        self,
+        parent: ttk.Frame,
+        *,
+        on_start: Callable[[], None],
+        on_health_check: Callable[[], None],
+        on_toggle_debug: Callable[[bool], None],
+        on_toggle_large_text: Callable[[bool], None],
+    ) -> ttk.LabelFrame:
+        for callback, name in (
+            (on_start, "on_start"),
+            (on_health_check, "on_health_check"),
+            (on_toggle_debug, "on_toggle_debug"),
+            (on_toggle_large_text, "on_toggle_large_text"),
+        ):
+            if not callable(callback):
+                raise ValueError(f"Callback {name} muss aufrufbar sein")
+
+        settings = ttk.LabelFrame(
+            parent,
+            text="Einstellungen & Schnellhilfe",
+            padding=10,
+            style="Sidebar.TLabelframe",
+            labelanchor="n",
+        )
+        settings.columnconfigure(0, weight=1)
+
+        ttk.Label(
+            settings,
+            text=(
+                "Themen, Kontrast und Autopilot hier steuern."
+                " Alle Schalter sind tastatur- und screenreader-freundlich."
+            ),
+            style="Helper.TLabel",
+            wraplength=220,
+        ).grid(row=0, column=0, sticky="w", pady=(0, 6))
+
+        theme_var = tk.StringVar(value=self.theme_manager.current_theme)
+        ttk.Label(settings, text="Theme wählen").grid(row=1, column=0, sticky="w")
+        theme_box = ttk.Combobox(
+            settings,
+            state="readonly",
+            textvariable=theme_var,
+            values=self.theme_manager.theme_names,
+        )
+        theme_box.grid(row=2, column=0, sticky="ew", pady=(2, 8))
+        theme_box.bind("<<ComboboxSelected>>", lambda _event: self.theme_manager.apply_theme(theme_var.get()))
+
+        ttk.Checkbutton(
+            settings,
+            text="Debug/Logging aktiv",
+            command=lambda: on_toggle_debug(True),
+        ).grid(row=3, column=0, sticky="w", pady=(0, 4))
+        ttk.Checkbutton(
+            settings,
+            text="Großtext sofort setzen",
+            command=lambda: on_toggle_large_text(True),
+        ).grid(row=4, column=0, sticky="w", pady=(0, 8))
+
+        ttk.Button(settings, text="Autopilot starten", command=on_start).grid(
+            row=5, column=0, sticky="ew", pady=(0, 4)
+        )
+        ttk.Button(settings, text="Gesundheitscheck", command=on_health_check).grid(
+            row=6, column=0, sticky="ew", pady=(0, 8)
+        )
+
+        ttk.Label(settings, text="Status & Hinweise", style="Status.TLabel").grid(
+            row=7, column=0, sticky="w"
+        )
+        ttk.Label(
+            settings,
+            text="Kontrast geprüft, Eingaben werden validiert, automatische Reparatur aktiv.",
+            style="Helper.TLabel",
+            wraplength=220,
+            justify=tk.LEFT,
+        ).grid(row=8, column=0, sticky="w")
+
+        return settings
