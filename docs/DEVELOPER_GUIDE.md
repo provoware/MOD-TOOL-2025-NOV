@@ -20,6 +20,7 @@
 - `mod_tool/plugins.py`: Minimaler Plugin-Loader für `plugins/*.py`.
 - `mod_tool/diagnostics.py`: Dekorator `guarded_action` für Vor/Nach-Logging und Timing.
 - `mod_tool/validator.py`: Validierende Eingabefelder mit Platzhaltern und Fehlermarkierung.
+- `mod_tool/manifest.py`: Beschreibt Struktur- und Layout-Manifest, erzeugt `manifest.json` automatisch.
 - `tests/`: Unittests für Layout, Guard-Checks und Selbstheilung.
 - `docs/DEVELOPER_GUIDE.md`: Dieses Dokument.
 - `todo.txt`: Laufende Aufgabenliste, nach jedem Change aktualisieren.
@@ -32,6 +33,7 @@
 - **Themes:** Neue Themes in `ThemeManager.THEMES` ergänzen; `apply_theme` ruft automatische Hintergrund-Propagation.
 - **Plugins:** Python-Dateien in `plugins/` ablegen; optional `on_load()` implementieren. Fehler werden geloggt.
 - **Selbstprüfungen:** `SelfCheck.full_check()` in automatischen Routinen nutzen; erzeugt fehlende Ordner.
+- **Manifest:** `ManifestWriter` nutzen, um nach Layout-Änderungen `manifest.json` zu aktualisieren.
 - **Tests:** `python -m unittest discover` ausführen. Tests skippen sich selbst, wenn Tk nicht initialisiert werden kann.
 
 ## Automatische Prüfungen & Codequalität

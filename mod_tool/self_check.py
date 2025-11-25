@@ -7,11 +7,18 @@ import subprocess
 import sys
 from typing import Iterable
 
+from .manifest import ManifestWriter, default_structure_manifest
+
 
 class SelfCheck:
     """Ensures required paths exist and performs lightweight validation."""
 
-    def __init__(self, required_paths: Iterable[pathlib.Path | str], base_path: pathlib.Path | None = None) -> None:
+    def __init__(
+        self,
+        required_paths: Iterable[pathlib.Path | str],
+        base_path: pathlib.Path | None = None,
+        manifest_path: pathlib.Path | str | None = None,
+    ) -> None:
         base = pathlib.Path(base_path) if base_path else pathlib.Path.cwd()
         if not base.exists():  # pragma: no cover - defensive guard
             raise ValueError("Basisverzeichnis fehlt oder ist ungültig")
@@ -22,6 +29,7 @@ class SelfCheck:
             if not target.is_absolute():
                 target = base / target
             self.required_paths.append(target)
+        self.manifest_path = pathlib.Path(manifest_path) if manifest_path else self.base_path / "manifest.json"
 
     def ensure_required_paths(self) -> dict[str, str]:
         """Create missing folders and confirm availability."""
@@ -78,4 +86,25 @@ class SelfCheck:
 
         tests_status, _ = self.run_quick_tests()
         path_status["tests"] = tests_status
+        manifest_status, manifest_msg = self.ensure_manifest_file()
+        path_status["manifest"] = manifest_status
+        if manifest_msg:
+            path_status["manifest_info"] = manifest_msg
         return path_status
+
+    def ensure_manifest_file(self) -> tuple[str, str]:
+        """Create or validate the JSON manifest for transparency."""
+
+        if not self.manifest_path:
+            return "übersprungen", "Kein Manifestpfad konfiguriert"
+
+        try:
+            content = self.manifest_path.read_text(encoding="utf-8")
+            if content.strip():
+                return "vorhanden", "Manifest geprüft"
+        except FileNotFoundError:
+            pass
+        manifest = default_structure_manifest()
+        writer = ManifestWriter(self.manifest_path)
+        writer.write(manifest)
+        return "erstellt", "Manifest neu erstellt"

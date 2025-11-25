@@ -1,0 +1,73 @@
+{
+  "structure_manifest": {
+    "version": "1.0",
+    "project": "MOD Tool Control Center",
+    "automation_steps": [
+      "Virtuelle Umgebung prüfen",
+      "Abhängigkeiten automatisch installieren",
+      "Pflichtordner reparieren",
+      "Syntax- und Format-Checks anstoßen",
+      "Schnelltests ausführen",
+      "Plugins laden"
+    ],
+    "health_checks": [
+      "Ordner vorhanden",
+      "Code kompilierbar",
+      "Tests grün oder übersprungen",
+      "Manifest vorhanden"
+    ],
+    "accessibility": {
+      "screenreader": "Klare Beschriftungen und Status-Labels für jede Zone",
+      "kontrast": "Mehrere Farb-Themes inklusive Hochkontrast",
+      "tastatur": "Steuerung per Tab-Reihenfolge von oben nach unten"
+    }
+  },
+  "layout_manifest": {
+    "version": "1.0",
+    "sections": [
+      {
+        "id": "header",
+        "title": "Steuerzentrale",
+        "purpose": "Start, Prüfungen, Theme-Auswahl",
+        "accessibility_label": "Obere Leiste mit Status und Buttons"
+      },
+      {
+        "id": "pane-1",
+        "title": "Bereich 1",
+        "purpose": "Freier Slot",
+        "accessibility_label": "Linkes oberes Panel"
+      },
+      {
+        "id": "pane-2",
+        "title": "Bereich 2",
+        "purpose": "Freier Slot",
+        "accessibility_label": "Rechtes oberes Panel"
+      },
+      {
+        "id": "pane-3",
+        "title": "Bereich 3",
+        "purpose": "Freier Slot",
+        "accessibility_label": "Linkes unteres Panel"
+      },
+      {
+        "id": "pane-4",
+        "title": "Bereich 4",
+        "purpose": "Freier Slot",
+        "accessibility_label": "Rechtes unteres Panel"
+      },
+      {
+        "id": "footer",
+        "title": "Fußleiste",
+        "purpose": "Debug, Log, Hinweise",
+        "accessibility_label": "Unterer Bereich mit Protokoll"
+      }
+    ],
+    "themes": [
+      "Hell",
+      "Dunkel",
+      "Kontrast",
+      "Blau",
+      "Wald"
+    ]
+  }
+}

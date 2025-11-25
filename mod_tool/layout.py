@@ -6,6 +6,7 @@ from tkinter import ttk
 from typing import Callable
 
 from .logging_dashboard import LoggingManager
+from .manifest import LayoutSection
 from .themes import ThemeManager
 from .validator import ValidatedEntry
 
@@ -96,6 +97,32 @@ class DashboardLayout:
         self.theme_manager = theme_manager
         self.logging_manager = logging_manager
         self.header_controls: HeaderControls | None = None
+        self._workspace_sections: list[LayoutSection] = [
+            LayoutSection(
+                identifier="pane-1",
+                title="Bereich 1",
+                purpose="Freier Slot für Plugins oder Statuskarten",
+                accessibility_label="Linkes oberes Panel",
+            ),
+            LayoutSection(
+                identifier="pane-2",
+                title="Bereich 2",
+                purpose="Freier Slot für Plugins oder Statuskarten",
+                accessibility_label="Rechtes oberes Panel",
+            ),
+            LayoutSection(
+                identifier="pane-3",
+                title="Bereich 3",
+                purpose="Freier Slot für Plugins oder Statuskarten",
+                accessibility_label="Linkes unteres Panel",
+            ),
+            LayoutSection(
+                identifier="pane-4",
+                title="Bereich 4",
+                purpose="Freier Slot für Plugins oder Statuskarten",
+                accessibility_label="Rechtes unteres Panel",
+            ),
+        ]
 
     def build(
         self,
@@ -147,3 +174,22 @@ class DashboardLayout:
         ttk.Label(info_block, text="Tipps: Eingaben prüfen, automatische Selbstheilung aktiv.").pack(
             anchor="w"
         )
+
+    def describe_sections(self) -> list[LayoutSection]:
+        """Expose layout sections for manifest creation and accessibility docs."""
+
+        return [
+            LayoutSection(
+                identifier="header",
+                title="Steuerzentrale",
+                purpose="Start, Prüfungen, Theme-Auswahl",
+                accessibility_label="Obere Leiste mit Status- und Kontroll-Buttons",
+            ),
+            *self._workspace_sections,
+            LayoutSection(
+                identifier="footer",
+                title="Fußleiste",
+                purpose="Debug, Log-Ansicht, Hinweise",
+                accessibility_label="Unterer Bereich mit Debug-Status und Tipps",
+            ),
+        ]

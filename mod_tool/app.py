@@ -7,6 +7,7 @@ three-part footer dedicated to debugging, hints, and live system data.
 from __future__ import annotations
 
 import logging
+import pathlib
 import sys
 import threading
 import time
@@ -15,6 +16,11 @@ import tkinter as tk
 from .bootstrap import Bootstrapper
 from .diagnostics import guarded_action
 from .layout import DashboardLayout
+from .manifest import (
+    ManifestWriter,
+    default_layout_manifest,
+    default_structure_manifest,
+)
 from .logging_dashboard import LoggingManager
 from .plugins import PluginManager
 from .self_check import SelfCheck
@@ -36,7 +42,11 @@ class ControlCenterApp:
         self._theme_manager = ThemeManager(self._root)
         self._logging_manager = LoggingManager(self._root)
         self._plugin_manager = PluginManager("plugins")
-        self._self_check = SelfCheck(required_paths=["logs", "plugins", "config"])
+        self._manifest_path = pathlib.Path(__file__).resolve().parent.parent / "manifest.json"
+        self._self_check = SelfCheck(
+            required_paths=["logs", "plugins", "config"],
+            manifest_path=self._manifest_path,
+        )
         self._startup_status = startup_status or {}
         self._debug_mode = tk.BooleanVar(value=False)
         self._monitor_started = False
@@ -126,6 +136,17 @@ class ControlCenterApp:
             "Debug/Logging-Modus aktiv" if enabled else "Debug/Logging-Modus aus"
         )
 
+    def _build_runtime_manifest(self) -> None:
+        """Generate and persist the layout/structure manifest for transparency."""
+
+        layout_manifest = default_layout_manifest(self._theme_manager.theme_names)
+        layout_manifest.sections = self._layout.describe_sections()
+        manifest = default_structure_manifest(self._theme_manager.theme_names)
+        manifest.layout_manifest = layout_manifest
+        writer = ManifestWriter(self._manifest_path)
+        manifest_path = writer.write(manifest)
+        self._logging_manager.log_system(f"Manifest aktualisiert: {manifest_path}")
+
     def run(self) -> None:
         self._layout.build(
             on_start=self._on_manual_start,
@@ -136,6 +157,7 @@ class ControlCenterApp:
         self._theme_manager.apply_theme("Hell")
         self._logging_manager.start_logging()
         self._logging_manager.log_system("Klick&Start-Routine bereit – alles automatisiert")
+        self._build_runtime_manifest()
         self._run_startup_sequence()
         self._root.mainloop()
 

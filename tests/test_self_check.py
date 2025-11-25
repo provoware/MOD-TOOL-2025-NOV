@@ -30,6 +30,9 @@ class SelfCheckTests(unittest.TestCase):
                 os.chdir(old_cwd)
             self.assertIn(result["code_format"], {"ok", "kompilierungswarnung"})
             self.assertIn(result["tests"], {"ok", "fehlgeschlagen", "übersprungen"})
+            self.assertIn(result["manifest"], {"vorhanden", "erstellt"})
+            manifest_file = dummy_root / "manifest.json"
+            self.assertTrue(manifest_file.exists())
 
 
 if __name__ == "__main__":  # pragma: no cover
