@@ -45,7 +45,7 @@ class HeaderControls:
         self.on_validate_links = on_validate_links
         self.on_reflow_workspaces = on_reflow_workspaces
         self.on_toggle_invert = on_toggle_invert
-        self.theme_choice = tk.StringVar(value="Hell")
+        self.theme_choice = tk.StringVar(value=theme_manager.current_theme)
         self.status_var = tk.StringVar(value="Bereit – Auto-Checks aktiv")
         self.stat_var = tk.StringVar(value="System gesund")
         self.progress_var = tk.IntVar(value=10)
@@ -56,14 +56,12 @@ class HeaderControls:
         self.input_fields: list[ValidatedEntry] = []
 
     def build(self) -> None:
-        ttk.Label(self.frame, text="Steuerzentrale", style="Header.TLabel").grid(
-            row=0, column=0, sticky="w"
-        )
+        ttk.Label(self.frame, text="ModulTool", style="Header.TLabel").grid(row=0, column=0, sticky="w")
         ttk.Label(
             self.frame,
             text=(
-                "Alles im Blick: Starte Autopilot, prüfe Gesundheit oder wechsle das Theme. "
-                "Daten bleiben lokal, Eingaben werden geprüft."
+                "Genernarchiv – alle Änderungen gespeichert. Autopilot prüfen, Designs wechseln "
+                "und Status beobachten. Alle Eingaben werden sofort validiert."
             ),
             style="Helper.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(2, 0))
@@ -196,8 +194,9 @@ class WorkspacePane(ttk.LabelFrame):
         status_color_provider: Callable[[bool], tuple[str, str]] | None = None,
         theme_manager: ThemeManager | None = None,
         start_collapsed: bool = True,
+        style_name: str = "Pane.TLabelframe",
     ) -> None:
-        super().__init__(parent, text=title, padding=10, labelanchor="n", style="Pane.TLabelframe")
+        super().__init__(parent, text=title, padding=10, labelanchor="n", style=style_name)
         self.logging_manager = logging_manager
         self.status_var = tk.StringVar(
             value="Bereit: Einfach Text eintragen. Rechtsklick öffnet das Kontextmenü."
@@ -341,8 +340,11 @@ class NotePanel(ttk.LabelFrame):
         on_save: Callable[[str], bool],
         on_autosave: Callable[[str], None],
         status_color_provider: Callable[[bool], tuple[str, str]],
+        frame_style: str = "Note.TLabelframe",
     ) -> None:
-        super().__init__(parent, text="Notizbereich – speichert automatisch", padding=10, style="Note.TLabelframe")
+        super().__init__(
+            parent, text="Notizbereich – speichert automatisch", padding=10, style=frame_style
+        )
         self.on_save = on_save
         self.on_autosave = on_autosave
         self.status_color_provider = status_color_provider
@@ -415,8 +417,9 @@ class TodoPanel(ttk.LabelFrame):
         on_add: Callable[[str, str | None, str, bool], bool],
         todo_provider: Callable[[], Sequence[TodoItem]],
         on_toggle_done: Callable[[str, bool], None],
+        frame_style: str = "Note.TLabelframe",
     ) -> None:
-        super().__init__(parent, text="To-do-Liste (Top 10)", padding=10, style="Note.TLabelframe")
+        super().__init__(parent, text="To-do-Liste (Top 10)", padding=10, style=frame_style)
         self.on_add = on_add
         self.todo_provider = todo_provider
         self.on_toggle_done = on_toggle_done
@@ -519,8 +522,9 @@ class GenrePanel(ttk.LabelFrame):
         parent: tk.Widget,
         on_add: Callable[[str, str, str], bool],
         summary_provider: Callable[[], Sequence[str]],
+        frame_style: str = "Note.TLabelframe",
     ) -> None:
-        super().__init__(parent, text="Genre-Archiv", padding=10, style="Note.TLabelframe")
+        super().__init__(parent, text="Genre-Archiv", padding=10, style=frame_style)
         self.on_add = on_add
         self.summary_provider = summary_provider
         self.category_var = tk.StringVar()
@@ -602,16 +606,30 @@ class Sidebar(ttk.LabelFrame):
         actions: dict[str, Callable[[], None]],
         info_provider: Callable[[], Iterable[str]],
     ) -> None:
-        super().__init__(parent, text="Schnellzugriff & Sicherheit", padding=10, labelanchor="n", style="Sidebar.TLabelframe")
+        super().__init__(
+            parent,
+            text="Schnellzugriff & Sicherheit",
+            padding=10,
+            labelanchor="n",
+            style="Nav.TLabelframe",
+        )
         self.actions = actions
         self.info_provider = info_provider
         self.visible = True
         for idx, (label, action) in enumerate(self.actions.items()):
-            ttk.Button(self, text=label, command=action).grid(row=idx, column=0, sticky="ew", pady=2)
-        ttk.Label(self, text="Best Practices & Barrierefreiheit:", style="Helper.TLabel").grid(
+            ttk.Button(self, text=label, command=action, style="Nav.TButton").grid(
+                row=idx, column=0, sticky="ew", pady=2
+            )
+        ttk.Label(self, text="Best Practices & Barrierefreiheit:", style="Nav.TLabel").grid(
             row=len(self.actions), column=0, sticky="w", pady=(8, 0)
         )
-        self.info_label = ttk.Label(self, text="", wraplength=180, justify=tk.LEFT)
+        self.info_label = ttk.Label(
+            self,
+            text="",
+            wraplength=180,
+            justify=tk.LEFT,
+            style="Nav.TLabel",
+        )
         self.info_label.grid(row=len(self.actions) + 1, column=0, sticky="w")
         self.columnconfigure(0, weight=1)
 
@@ -654,12 +672,7 @@ class DashboardLayout:
         self.pane_grid: ttk.Panedwindow | None = None
         self.pane_rows: tuple[ttk.Panedwindow, ttk.Panedwindow] | None = None
         self._workspace_panes: list[WorkspacePane] = []
-        self.module_palette: Sequence[tuple[str, str]] = (
-            ("#1fb6ff", "#e0f7ff"),  # Modul 1: Blau/Türkis
-            ("#7c3aed", "#f3e8ff"),  # Modul 2: Violett
-            ("#16a34a", "#e6ffed"),  # Modul 3: Grün
-            ("#f97316", "#fff3e6"),  # Modul 4: Orange
-        )
+        self.module_palette: Sequence[tuple[str, str]] = self.theme_manager.module_palette
         self._workspace_sections: list[LayoutSection] = [
             LayoutSection(
                 identifier="pane-1",
@@ -765,14 +778,14 @@ class DashboardLayout:
         self.header_controls.set_accessibility_status(report)
         self.header_controls.frame.grid(row=0, column=0, sticky="nsew")
 
-        workspace_container = ttk.Frame(self.root, padding=8)
+        workspace_container = ttk.Frame(self.root, padding=12, style="Main.TFrame")
         workspace_container.grid(row=1, column=0, sticky="nsew")
         workspace_container.columnconfigure(0, weight=0, minsize=240)
         workspace_container.columnconfigure(1, weight=1)
         workspace_container.columnconfigure(2, weight=0, minsize=260)
         workspace_container.rowconfigure(0, weight=1)
 
-        nav_column = ttk.Frame(workspace_container)
+        nav_column = ttk.Frame(workspace_container, padding=6, style="Nav.TFrame")
         nav_column.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
         nav_column.rowconfigure(1, weight=1)
 
@@ -840,7 +853,7 @@ class DashboardLayout:
         self.sidebar.grid(row=1, column=0, sticky="nsw")
         self.sidebar.refresh_info()
 
-        workspace = ttk.Frame(workspace_container)
+        workspace = ttk.Frame(workspace_container, style="Main.TFrame")
         workspace.grid(row=0, column=1, sticky="nsew")
         workspace.columnconfigure(0, weight=1)
         workspace.rowconfigure(0, weight=1)
@@ -861,11 +874,12 @@ class DashboardLayout:
             on_save=on_save_note,
             on_autosave=on_autosave_note,
             status_color_provider=self.state.rotate_status_colors,
+            frame_style="Card.TLabelframe",
         )
         self.note_panel.grid(row=0, column=0, sticky="nsew", pady=(0, 8))
         self.theme_manager.apply_text_theme(self.note_panel.text)
 
-        helper_container = ttk.Frame(workspace)
+        helper_container = ttk.Frame(workspace, style="Main.TFrame")
         helper_container.grid(row=1, column=0, sticky="nsew", pady=(0, 8))
         helper_container.columnconfigure(0, weight=1)
         helper_container.columnconfigure(1, weight=1)
@@ -877,6 +891,7 @@ class DashboardLayout:
             on_add=on_add_todo,
             todo_provider=todo_provider,
             on_toggle_done=on_toggle_todo,
+            frame_style="Card.TLabelframe",
         )
         self.todo_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 4))
 
@@ -884,6 +899,7 @@ class DashboardLayout:
             helper_container,
             on_add=on_add_genre,
             summary_provider=genre_summary_provider,
+            frame_style="Card.TLabelframe",
         )
         self.genre_panel.grid(row=0, column=1, sticky="nsew", padx=(4, 0))
 
@@ -893,6 +909,7 @@ class DashboardLayout:
                 store=snippet_store,
                 theme_manager=self.theme_manager,
                 logging_manager=self.logging_manager,
+                frame_style="Card.TLabelframe",
             )
             self.snippet_panel.grid(row=0, column=2, sticky="nsew", padx=(4, 0))
 
@@ -905,25 +922,27 @@ class DashboardLayout:
         self.pane_grid = pane_grid
         self.pane_rows = (top_row, bottom_row)
 
-        pane_descriptions = [
-            "Hier kannst du To-dos sammeln oder einfache Schritte notieren.",
-            "Platz für Plugin-Notizen und schnelle Ergebnisse.",
-            "Sammel Hinweise für Fehler, Logs oder Screenshots.",
-            "Freie Zone für eigene Ideen oder Checklisten.",
+        pane_content = [
+            ("Genreverwaltung", "Romane, Serien oder Settings anlegen und speichern."),
+            ("Archiv", "Schnellzugriff auf abgelegte Projekte und Beispiele."),
+            ("Dashboard", "Übersichten anzeigen und Fortschritt visualisieren."),
+            ("Zufall & Vorlagen", "Generatoren, Test-Templates und Debug-Log füttern."),
         ]
 
         self._workspace_panes.clear()
+        palette = self.theme_manager.module_palette or self.module_palette
         index = 0
         for row_container in (top_row, bottom_row):
             for _ in range(2):
-                color_primary, color_bg = self.module_palette[index % len(self.module_palette)]
+                color_primary, color_bg = palette[index % len(palette)]
                 pane = WorkspacePane(
                     row_container,
-                    title=f"Bereich {index + 1}",
-                    description=pane_descriptions[index],
+                    title=pane_content[index][0],
+                    description=pane_content[index][1],
                     logging_manager=self.logging_manager,
                     status_color_provider=self.state.rotate_status_colors,
                     theme_manager=self.theme_manager,
+                    style_name="Card.TLabelframe",
                 )
                 color_band = tk.Frame(
                     pane, height=8, background=color_primary, highlightthickness=0
@@ -936,7 +955,7 @@ class DashboardLayout:
                     highlightthickness=0,
                 )
                 accent_band.pack(fill=tk.X, padx=2, pady=(0, 6))
-                pane.configure(style="Pane.TLabelframe")
+                pane.configure(style="Card.TLabelframe")
                 pane.configure(labelanchor="n")
                 pane.text.configure(highlightthickness=2, highlightbackground=color_bg)
                 pane.status_label.configure(background=color_bg)
@@ -1080,9 +1099,9 @@ class DashboardLayout:
 
         nav_frame = ttk.LabelFrame(
             parent,
-            text="Kachel-Navigation",
+            text="Menü",
             padding=10,
-            style="Sidebar.TLabelframe",
+            style="Nav.TLabelframe",
             labelanchor="n",
         )
         nav_frame.grid(row=0, column=0, sticky="nsew")
@@ -1095,12 +1114,14 @@ class DashboardLayout:
             icon = item.get("icon", "•")
             if not label or not callable(command):
                 raise ValueError("Jeder Navigationseintrag braucht Label und Funktion")
-            button = ttk.Button(nav_frame, text=f"{icon} {label}", command=command)
+            button = ttk.Button(
+                nav_frame, text=f"{icon} {label}", command=command, style="Nav.TButton"
+            )
             button.grid(row=idx * 2, column=0, sticky="ew", pady=(0, 2))
             ttk.Label(
                 nav_frame,
                 text=description,
-                style="Helper.TLabel",
+                style="Nav.TLabel",
                 wraplength=200,
                 justify=tk.LEFT,
             ).grid(row=idx * 2 + 1, column=0, sticky="w", pady=(0, 6))
@@ -1127,7 +1148,7 @@ class DashboardLayout:
             parent,
             text="Einstellungen & Schnellhilfe",
             padding=10,
-            style="Sidebar.TLabelframe",
+            style="Settings.TLabelframe",
             labelanchor="n",
         )
         settings.columnconfigure(0, weight=1)

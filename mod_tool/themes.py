@@ -11,6 +11,26 @@ class ThemeManager:
     """Handles accessible themes, font scaling, and style registration."""
 
     THEMES = {
+        "Aurora": {
+            "background": "#0b1f2f",
+            "foreground": "#eaf1ff",
+            "accent": "#ff9f0c",
+            "nav_bg": "#d4550f",
+            "nav_fg": "#fffaf2",
+            "nav_accent": "#ffb347",
+            "settings_bg": "#102840",
+            "settings_fg": "#eaf1ff",
+            "card_base": "#0f2c44",
+            "card_title": "#fef08a",
+            "card_palette": [
+                ("#168cf5", "#0c273d"),
+                ("#d97706", "#2f1a06"),
+                ("#16a34a", "#0f3022"),
+                ("#ef4444", "#301014"),
+                ("#8b5cf6", "#25183a"),
+                ("#0ea5e9", "#0a2435"),
+            ],
+        },
         "Hell": {
             "background": "#f7f9fb",
             "foreground": "#0f172a",
@@ -72,8 +92,9 @@ class ThemeManager:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.style = ttk.Style(root)
-        self.current_theme = "Hell"
+        self.current_theme = "Aurora"
         self.invert_text = False
+        self.current_surfaces: dict[str, object] = {}
         default_font = tkfont.nametofont("TkDefaultFont")
         text_font = tkfont.nametofont("TkTextFont")
         fixed_font = tkfont.nametofont("TkFixedFont")
@@ -101,6 +122,43 @@ class ThemeManager:
     def palette(self) -> dict[str, str]:
         return self.THEMES.get(self.current_theme, self.THEMES["Hell"])
 
+    def _resolve_surfaces(self, theme: dict[str, object]) -> dict[str, object]:
+        defaults = {
+            "nav_bg": theme.get("nav_bg", theme["background"]),
+            "nav_fg": theme.get("nav_fg", theme["foreground"]),
+            "nav_accent": theme.get("nav_accent", theme["accent"]),
+            "settings_bg": theme.get("settings_bg", theme["background"]),
+            "settings_fg": theme.get("settings_fg", theme["foreground"]),
+            "card_base": theme.get("card_base", theme["background"]),
+            "card_title": theme.get("card_title", theme["accent"]),
+        }
+        card_palette = theme.get("card_palette")
+        if isinstance(card_palette, list) and all(
+            isinstance(pair, (list, tuple)) and len(pair) == 2 and all(isinstance(color, str) for color in pair)
+            for pair in card_palette
+        ):
+            defaults["card_palette"] = card_palette
+        else:
+            defaults["card_palette"] = [
+                ("#1fb6ff", "#e0f7ff"),
+                ("#7c3aed", "#f3e8ff"),
+                ("#16a34a", "#e6ffed"),
+                ("#f97316", "#fff3e6"),
+            ]
+        return defaults
+
+    @property
+    def module_palette(self) -> list[tuple[str, str]]:
+        palette = self.current_surfaces.get("card_palette")
+        if isinstance(palette, list) and all(isinstance(pair, (list, tuple)) and len(pair) == 2 for pair in palette):
+            return [(str(primary), str(secondary)) for primary, secondary in palette]
+        return [
+            ("#1fb6ff", "#e0f7ff"),
+            ("#7c3aed", "#f3e8ff"),
+            ("#16a34a", "#e6ffed"),
+            ("#f97316", "#fff3e6"),
+        ]
+
     def configure_styles(self) -> None:
         self.style.configure("Header.TLabel", font=self.fonts["header"])
         self.style.configure("TLabel", wraplength=440, font=self.fonts["default"])
@@ -125,6 +183,7 @@ class ThemeManager:
         bg = theme["background"]
         fg = theme["foreground"]
         accent = theme["accent"]
+        self.current_surfaces = self._resolve_surfaces(theme)
 
         self.root.configure(bg=bg)
         for element in ["TFrame", "TLabel", "TLabelFrame", "TButton", "TCombobox", "Treeview"]:
@@ -163,6 +222,58 @@ class ThemeManager:
         }
         self.style.configure("TProgressbar", **progress_style)
 
+        nav_bg = self.current_surfaces["nav_bg"]
+        nav_fg = self.current_surfaces["nav_fg"]
+        nav_accent = self.current_surfaces["nav_accent"]
+        settings_bg = self.current_surfaces["settings_bg"]
+        settings_fg = self.current_surfaces["settings_fg"]
+        card_base = self.current_surfaces["card_base"]
+        card_title = self.current_surfaces["card_title"]
+
+        self.style.configure("Nav.TFrame", background=nav_bg)
+        self.style.configure("Nav.TLabel", background=nav_bg, foreground=nav_fg, font=self.fonts["status"])
+        self.style.configure(
+            "Nav.TButton",
+            background=nav_bg,
+            foreground=nav_fg,
+            font=self.fonts["button"],
+            bordercolor=nav_accent,
+            focusthickness=2,
+            focuscolor=nav_accent,
+        )
+        self.style.map(
+            "Nav.TButton",
+            background=[("active", nav_accent)],
+            foreground=[("active", nav_fg)],
+        )
+        self.style.configure(
+            "Nav.TLabelframe",
+            background=nav_bg,
+            foreground=nav_fg,
+            bordercolor=nav_accent,
+            padding=8,
+        )
+        self.style.configure("Nav.TLabelframe.Label", background=nav_bg, foreground=nav_fg)
+
+        self.style.configure(
+            "Settings.TLabelframe",
+            background=settings_bg,
+            foreground=settings_fg,
+            bordercolor=accent,
+            padding=10,
+        )
+        self.style.configure("Settings.TLabelframe.Label", background=settings_bg, foreground=accent)
+
+        self.style.configure(
+            "Card.TLabelframe",
+            background=card_base,
+            foreground=fg,
+            bordercolor=accent,
+            padding=10,
+        )
+        self.style.configure("Card.TLabelframe.Label", background=card_base, foreground=card_title)
+        self.style.configure("Main.TFrame", background=bg)
+
         for child in self.root.winfo_children():
             self._propagate_bg(child, bg)
 
@@ -198,6 +309,10 @@ class ThemeManager:
         )
 
     def _propagate_bg(self, widget: tk.Widget, bg: str) -> None:
+        if isinstance(widget, ttk.Widget):
+            for child in widget.winfo_children():
+                self._propagate_bg(child, bg)
+            return
         try:
             widget.configure(background=bg)
         except tk.TclError:
