@@ -30,6 +30,9 @@ class HeaderControls:
         on_show_index: Callable[[], None],
         on_toggle_large_text: Callable[[bool], None],
         on_toggle_sidebar: Callable[[], None],
+        on_validate_links: Callable[[], None],
+        on_reflow_workspaces: Callable[[], None],
+        on_toggle_invert: Callable[[], None],
     ) -> None:
         self.frame = ttk.Frame(parent, padding=8)
         self.theme_manager = theme_manager
@@ -39,6 +42,9 @@ class HeaderControls:
         self.on_show_index = on_show_index
         self.on_toggle_large_text = on_toggle_large_text
         self.on_toggle_sidebar = on_toggle_sidebar
+        self.on_validate_links = on_validate_links
+        self.on_reflow_workspaces = on_reflow_workspaces
+        self.on_toggle_invert = on_toggle_invert
         self.theme_choice = tk.StringVar(value="Hell")
         self.status_var = tk.StringVar(value="Bereit – Auto-Checks aktiv")
         self.stat_var = tk.StringVar(value="System gesund")
@@ -107,6 +113,21 @@ class HeaderControls:
             text="Sidebar ein/aus",
             command=self.on_toggle_sidebar,
         ).grid(row=1, column=2, sticky="ew", padx=(8, 0))
+        ttk.Button(
+            self.frame,
+            text="Verknüpfungen prüfen",
+            command=self.on_validate_links,
+        ).grid(row=2, column=2, sticky="ew", padx=(8, 0))
+        ttk.Button(
+            self.frame,
+            text="Fenster neu anordnen",
+            command=self.on_reflow_workspaces,
+        ).grid(row=3, column=2, sticky="ew", padx=(8, 0))
+        ttk.Button(
+            self.frame,
+            text="Invertierter Text (aktiv)",
+            command=self.on_toggle_invert,
+        ).grid(row=4, column=2, sticky="ew", padx=(8, 0))
 
         ttk.Label(self.frame, text="Theme").grid(row=0, column=3, sticky="e")
         theme_box = ttk.Combobox(
@@ -164,7 +185,7 @@ class HeaderControls:
 
 
 class WorkspacePane(ttk.LabelFrame):
-    """Editable workspace pane with context menu and validation."""
+    """Editable workspace pane with context menu, validation, and collapsing."""
 
     def __init__(
         self,
@@ -174,6 +195,7 @@ class WorkspacePane(ttk.LabelFrame):
         logging_manager: LoggingManager | None = None,
         status_color_provider: Callable[[bool], tuple[str, str]] | None = None,
         theme_manager: ThemeManager | None = None,
+        start_collapsed: bool = True,
     ) -> None:
         super().__init__(parent, text=title, padding=10, labelanchor="n", style="Pane.TLabelframe")
         self.logging_manager = logging_manager
@@ -190,9 +212,19 @@ class WorkspacePane(ttk.LabelFrame):
         self._menu.add_separator()
         self._menu.add_command(label="Leeren", command=self.clear_text)
         self._menu.add_command(label="Speichern & prüfen", command=self.save_content)
+        self._collapsed = tk.BooleanVar(value=start_collapsed)
 
-        ttk.Label(self, text=self.description, wraplength=240).pack(anchor="w")
-        text_container = ttk.Frame(self)
+        header = ttk.Frame(self)
+        ttk.Label(header, text=title, style="Header.TLabel").pack(side=tk.LEFT)
+        self.toggle_button = ttk.Button(
+            header, text="Bereich öffnen", command=self.toggle_body, width=18
+        )
+        self.toggle_button.pack(side=tk.RIGHT)
+        header.pack(fill=tk.X, pady=(0, 6))
+
+        self.body = ttk.Frame(self)
+        ttk.Label(self.body, text=self.description, wraplength=240).pack(anchor="w")
+        text_container = ttk.Frame(self.body)
         text_container.columnconfigure(0, weight=1)
         text_container.rowconfigure(0, weight=1)
 
@@ -216,7 +248,7 @@ class WorkspacePane(ttk.LabelFrame):
         x_scroll.grid(row=1, column=0, sticky="ew")
         text_container.pack(fill=tk.BOTH, expand=True, pady=4)
 
-        button_bar = ttk.Frame(self)
+        button_bar = ttk.Frame(self.body)
         ttk.Button(button_bar, text="Speichern & prüfen", command=self.save_content).pack(
             side=tk.LEFT, padx=(0, 6)
         )
@@ -226,8 +258,13 @@ class WorkspacePane(ttk.LabelFrame):
         ttk.Button(button_bar, text="Leeren", command=self.clear_text).pack(side=tk.LEFT, padx=(6, 0))
         button_bar.pack(anchor="w", pady=(2, 0))
 
-        self.status_label = ttk.Label(self, textvariable=self.status_var, style="Status.TLabel")
+        self.status_label = ttk.Label(
+            self.body, textvariable=self.status_var, style="Status.TLabel"
+        )
         self.status_label.pack(anchor="w", pady=(4, 0))
+        if not self._collapsed.get():
+            self.body.pack(fill=tk.BOTH, expand=True)
+        self._update_toggle_label()
 
     def _show_menu(self, event: tk.Event[tk.Misc]) -> None:  # pragma: no cover - UI binding
         self._menu.tk_popup(event.x_root, event.y_root)
@@ -278,6 +315,21 @@ class WorkspacePane(ttk.LabelFrame):
         if self.status_color_provider and self.status_label:
             fg, bg = self.status_color_provider(ok)
             self.status_label.configure(foreground=fg, background=bg)
+
+    def toggle_body(self) -> None:
+        self._collapsed.set(not self._collapsed.get())
+        if self._collapsed.get():
+            self.body.pack_forget()
+        else:
+            self.body.pack(fill=tk.BOTH, expand=True)
+        state = "eingeklappt" if self._collapsed.get() else "geöffnet"
+        self.status_var.set(f"Bereich {state} – Inhalte bleiben gespeichert.")
+        self._update_toggle_label()
+
+    def _update_toggle_label(self) -> None:
+        self.toggle_button.configure(
+            text="Bereich öffnen" if self._collapsed.get() else "Bereich minimieren"
+        )
 
 
 class NotePanel(ttk.LabelFrame):
@@ -577,6 +629,9 @@ class DashboardLayout:
         self.genre_panel: GenrePanel | None = None
         self.snippet_panel: SnippetLibraryPanel | None = None
         self.info_label: ttk.Label | None = None
+        self.pane_grid: ttk.Panedwindow | None = None
+        self.pane_rows: tuple[ttk.Panedwindow, ttk.Panedwindow] | None = None
+        self._workspace_panes: list[WorkspacePane] = []
         self.module_palette: Sequence[tuple[str, str]] = (
             ("#1fb6ff", "#e0f7ff"),  # Modul 1: Blau/Türkis
             ("#7c3aed", "#f3e8ff"),  # Modul 2: Violett
@@ -624,6 +679,9 @@ class DashboardLayout:
         on_show_index: Callable[[], None],
         on_toggle_large_text: Callable[[bool], None] | None = None,
         on_toggle_sidebar: Callable[[], None] | None = None,
+        on_validate_links: Callable[[], None] | None = None,
+        on_reflow_workspaces: Callable[[], None] | None = None,
+        on_toggle_invert: Callable[[], None] | None = None,
         on_choose_project: Callable[[], None] | None = None,
         on_save_note: Callable[[str], bool] | None = None,
         on_autosave_note: Callable[[str], None] | None = None,
@@ -649,6 +707,9 @@ class DashboardLayout:
 
         on_toggle_large_text = on_toggle_large_text or (lambda _state: None)
         on_toggle_sidebar = on_toggle_sidebar or (lambda: None)
+        on_validate_links = on_validate_links or (lambda: None)
+        on_reflow_workspaces = on_reflow_workspaces or (lambda: None)
+        on_toggle_invert = on_toggle_invert or (lambda: None)
         on_choose_project = on_choose_project or (lambda: None)
         on_save_note = on_save_note or (lambda _text: True)
         on_autosave_note = on_autosave_note or (lambda _text: None)
@@ -673,6 +734,9 @@ class DashboardLayout:
             on_show_index,
             on_toggle_large_text,
             on_toggle_sidebar,
+            on_validate_links,
+            on_reflow_workspaces,
+            on_toggle_invert,
         )
         self.header_controls.build()
         report = self.theme_manager.accessibility_report()
@@ -809,11 +873,14 @@ class DashboardLayout:
             )
             self.snippet_panel.grid(row=0, column=2, sticky="nsew", padx=(4, 0))
 
-        pane_grid = ttk.Frame(workspace)
+        pane_grid = ttk.Panedwindow(workspace, orient=tk.VERTICAL)
         pane_grid.grid(row=2, column=0, sticky="nsew")
-        for i in range(2):
-            pane_grid.columnconfigure(i, weight=1, uniform="pane")
-            pane_grid.rowconfigure(i, weight=1, uniform="pane")
+        top_row = ttk.Panedwindow(pane_grid, orient=tk.HORIZONTAL)
+        bottom_row = ttk.Panedwindow(pane_grid, orient=tk.HORIZONTAL)
+        pane_grid.add(top_row, weight=1)
+        pane_grid.add(bottom_row, weight=1)
+        self.pane_grid = pane_grid
+        self.pane_rows = (top_row, bottom_row)
 
         pane_descriptions = [
             "Hier kannst du To-dos sammeln oder einfache Schritte notieren.",
@@ -822,13 +889,14 @@ class DashboardLayout:
             "Freie Zone für eigene Ideen oder Checklisten.",
         ]
 
+        self._workspace_panes.clear()
         index = 0
-        for row in range(2):
-            for col in range(2):
+        for row_container in (top_row, bottom_row):
+            for _ in range(2):
                 color_primary, color_bg = self.module_palette[index % len(self.module_palette)]
                 pane = WorkspacePane(
-                    pane_grid,
-                    title=f"Bereich {row * 2 + col + 1}",
+                    row_container,
+                    title=f"Bereich {index + 1}",
                     description=pane_descriptions[index],
                     logging_manager=self.logging_manager,
                     status_color_provider=self.state.rotate_status_colors,
@@ -846,10 +914,11 @@ class DashboardLayout:
                 )
                 accent_band.pack(fill=tk.X, padx=2, pady=(0, 6))
                 pane.configure(style="Pane.TLabelframe")
-                pane.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
                 pane.configure(labelanchor="n")
                 pane.text.configure(highlightthickness=2, highlightbackground=color_bg)
                 pane.status_label.configure(background=color_bg)
+                row_container.add(pane, weight=1)
+                self._workspace_panes.append(pane)
                 index += 1
 
         footer = ttk.Frame(self.root, padding=8)
@@ -913,6 +982,31 @@ class DashboardLayout:
     def refresh_snippets(self) -> None:
         if self.snippet_panel:
             self.snippet_panel.refresh()
+
+    def rotate_workspace_rows(self) -> None:
+        """Allow the user to reorder workspace rows for flexible layouts."""
+
+        if not self.pane_grid:
+            return
+        panes = list(self.pane_grid.panes())
+        if len(panes) < 2:
+            return
+        first = panes.pop(0)
+        ordered = panes + [first]
+        for name in [first, *panes]:
+            self.pane_grid.forget(name)
+        for name in ordered:
+            widget = self.root.nametowidget(name)
+            self.pane_grid.add(widget, weight=1)
+
+    def all_text_fields(self) -> list[tk.Text]:
+        """Expose all text widgets so styling actions can target them."""
+
+        fields: list[tk.Text] = []
+        if self.note_panel:
+            fields.append(self.note_panel.text)
+        fields.extend(pane.text for pane in self._workspace_panes)
+        return fields
 
     def describe_sections(self) -> list[LayoutSection]:
         """Expose layout sections for manifest creation and accessibility docs."""

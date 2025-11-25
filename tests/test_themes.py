@@ -44,6 +44,21 @@ class ThemeAccessibilityTests(unittest.TestCase):
         self.assertEqual(text_widget.cget("background"), palette["foreground"])
         root.destroy()
 
+    def test_invert_only_active_field(self):
+        try:
+            root = tk.Tk()
+            root.withdraw()
+        except tk.TclError:
+            self.skipTest("Tk nicht verfügbar")
+        manager = ThemeManager(root)
+        manager.apply_theme("Hell")
+        text_widget = tk.Text(root)
+        manager.apply_text_theme(text_widget, invert=True)
+        self.assertEqual(text_widget.cget("foreground"), manager.palette["background"])
+        manager.apply_text_theme(text_widget, invert=False)
+        self.assertEqual(text_widget.cget("foreground"), manager.palette["foreground"])
+        root.destroy()
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

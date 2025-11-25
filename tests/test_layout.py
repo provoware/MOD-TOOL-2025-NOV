@@ -22,7 +22,12 @@ class LayoutTests(unittest.TestCase):
         themes = ThemeManager(self.root)
         logging_manager = LoggingManager(self.root)
         layout = DashboardLayout(self.root, themes, logging_manager)
-        layout.build(on_start=lambda: None, on_health_check=lambda: None, on_toggle_debug=lambda _=False: None, on_show_index=lambda: None)
+        layout.build(
+            on_start=lambda: None,
+            on_health_check=lambda: None,
+            on_toggle_debug=lambda _=False: None,
+            on_show_index=lambda: None,
+        )
         self.assertEqual(self.root.grid_size(), (1, 3))
 
     def test_core_widgets_have_scrollbars(self):
@@ -47,6 +52,31 @@ class LayoutTests(unittest.TestCase):
             theme_manager=themes,
         )
         self.assertNotEqual(pane.text.cget("yscrollcommand"), "")
+
+    def test_workspace_panes_start_collapsed_and_can_expand(self):
+        themes = ThemeManager(self.root)
+        logging_manager = LoggingManager(self.root)
+        layout = DashboardLayout(self.root, themes, logging_manager)
+        layout.build(
+            on_start=lambda: None,
+            on_health_check=lambda: None,
+            on_toggle_debug=lambda _=False: None,
+            on_show_index=lambda: None,
+        )
+        pane = layout._workspace_panes[0]
+        self.assertTrue(pane._collapsed.get())
+        pane.toggle_body()
+        self.assertFalse(pane._collapsed.get())
+
+    def test_workspace_rows_rotate(self):
+        themes = ThemeManager(self.root)
+        logging_manager = LoggingManager(self.root)
+        layout = DashboardLayout(self.root, themes, logging_manager)
+        layout.build(on_start=lambda: None, on_health_check=lambda: None, on_toggle_debug=lambda _=False: None, on_show_index=lambda: None)
+        before = list(layout.pane_grid.panes())
+        layout.rotate_workspace_rows()
+        after = list(layout.pane_grid.panes())
+        self.assertNotEqual(before, after)
 
 
 if __name__ == "__main__":  # pragma: no cover
