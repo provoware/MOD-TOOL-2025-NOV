@@ -99,6 +99,34 @@ class LayoutTests(unittest.TestCase):
         self.assertTrue(layout._details_visible.get())
         self.assertTrue(layout.detail_frame.winfo_ismapped())
 
+    def test_navigation_opens_sections_and_updates_stats(self):
+        themes = ThemeManager(self.root)
+        logging_manager = LoggingManager(self.root)
+        layout = DashboardLayout(self.root, themes, logging_manager)
+        layout.build(
+            on_start=lambda: None,
+            on_health_check=lambda: None,
+            on_toggle_debug=lambda _=False: None,
+            on_show_index=lambda: None,
+        )
+        layout.navigate_to("todos")
+        self.assertTrue(layout._details_visible.get())
+        self.assertIn("todos", layout._collect_metrics())
+
+    def test_workspace_can_be_maximised_and_restored(self):
+        themes = ThemeManager(self.root)
+        logging_manager = LoggingManager(self.root)
+        layout = DashboardLayout(self.root, themes, logging_manager)
+        layout.build(
+            on_start=lambda: None,
+            on_health_check=lambda: None,
+            on_toggle_debug=lambda _=False: None,
+            on_show_index=lambda: None,
+        )
+        pane = layout._workspace_panes[0]
+        layout.maximize_workspace(pane)
+        layout.restore_workspace_sizes()
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

@@ -209,6 +209,9 @@ class WorkspacePane(ttk.LabelFrame):
         theme_manager: ThemeManager | None = None,
         start_collapsed: bool = True,
         style_name: str = "Pane.TLabelframe",
+        on_request_maximize: Callable[["WorkspacePane"], None] | None = None,
+        on_request_restore: Callable[[], None] | None = None,
+        on_toggle_enabled: Callable[["WorkspacePane", bool], None] | None = None,
     ) -> None:
         super().__init__(parent, text=title, padding=10, labelanchor="n", style=style_name)
         self.logging_manager = logging_manager
@@ -218,6 +221,9 @@ class WorkspacePane(ttk.LabelFrame):
         self.status_color_provider = status_color_provider
         self.theme_manager = theme_manager
         self.description = description
+        self._on_request_maximize = on_request_maximize or (lambda _pane: None)
+        self._on_request_restore = on_request_restore or (lambda: None)
+        self._on_toggle_enabled = on_toggle_enabled or (lambda _pane, _state: None)
         self._menu = tk.Menu(self, tearoff=False)
         self._menu.add_command(label="Kopieren", command=self.copy_selection)
         self._menu.add_command(label="Einfügen", command=self.paste_clipboard)
@@ -226,6 +232,7 @@ class WorkspacePane(ttk.LabelFrame):
         self._menu.add_command(label="Leeren", command=self.clear_text)
         self._menu.add_command(label="Speichern & prüfen", command=self.save_content)
         self._collapsed = tk.BooleanVar(value=start_collapsed)
+        self._enabled = tk.BooleanVar(value=True)
 
         header = ttk.Frame(self)
         ttk.Label(header, text=title, style="Header.TLabel").pack(side=tk.LEFT)
@@ -233,6 +240,21 @@ class WorkspacePane(ttk.LabelFrame):
             header, text="Bereich öffnen", command=self.toggle_body, width=18
         )
         self.toggle_button.pack(side=tk.RIGHT)
+
+        controls = ttk.Frame(header)
+        ttk.Button(controls, text="Maximieren", command=lambda: self._on_request_maximize(self)).pack(
+            side=tk.LEFT, padx=(0, 4)
+        )
+        ttk.Button(controls, text="Normal", command=self._on_request_restore).pack(
+            side=tk.LEFT, padx=(0, 4)
+        )
+        ttk.Checkbutton(
+            controls,
+            text="Deaktivieren",
+            variable=self._enabled,
+            command=self._toggle_enabled_state,
+        ).pack(side=tk.LEFT)
+        controls.pack(side=tk.RIGHT, padx=(0, 4))
         header.pack(fill=tk.X, pady=(0, 6))
 
         self.body = ttk.Frame(self)
@@ -322,6 +344,16 @@ class WorkspacePane(ttk.LabelFrame):
         if self.logging_manager:
             self.logging_manager.log_system(f"Pane aktualisiert: {preview}")
         return True
+
+    def _toggle_enabled_state(self) -> None:
+        enabled = self._enabled.get()
+        self._on_toggle_enabled(self, enabled)
+        state = "normal" if enabled else "disabled"
+        self.text.configure(state=state)
+        message = "Bereich aktiviert" if enabled else "Bereich deaktiviert – Eingaben gesperrt"
+        self.status_var.set(message)
+        if self.logging_manager:
+            self.logging_manager.log_system(message)
 
     def _set_status(self, message: str, ok: bool = True) -> None:
         self.status_var.set(message)
@@ -760,6 +792,10 @@ class DashboardLayout:
         self.tile_cards: list[ModuleCard] = []
         self._details_visible = tk.BooleanVar(value=False)
         self.module_palette: Sequence[tuple[str, str]] = self.theme_manager.module_palette
+        self._todo_provider: Callable[[], Sequence[TodoItem]] | None = None
+        self._genre_summary_provider: Callable[[], Sequence[str]] | None = None
+        self._snippet_store: SnippetStore | None = None
+        self._stats_labels: dict[str, tk.Label] = {}
         self._workspace_sections: list[LayoutSection] = [
             LayoutSection(
                 identifier="pane-1",
@@ -851,6 +887,10 @@ class DashboardLayout:
         on_change_log_level = on_change_log_level or (lambda _level: None)
         on_theme_changed = on_theme_changed or (lambda _theme, _report: None)
 
+        self._todo_provider = todo_provider
+        self._genre_summary_provider = genre_summary_provider
+        self._snippet_store = snippet_store
+
         self.header_controls = HeaderControls(
             self.root,
             self.theme_manager,
@@ -886,49 +926,49 @@ class DashboardLayout:
                 "label": "Übersicht",
                 "icon": "📊",
                 "description": "Startseite mit Status und Modulen.",
-                "command": on_show_index,
+                "command": lambda: self.navigate_to("overview", on_show_index),
             },
             {
                 "label": "Genres",
                 "icon": "🎵",
                 "description": "Archiv und Profile pflegen.",
-                "command": on_open_genres_tool,
+                "command": lambda: self.navigate_to("genres", on_open_genres_tool),
             },
             {
                 "label": "Vorlagen",
                 "icon": "📁",
                 "description": "Schnellzugriff auf Muster und Layouts.",
-                "command": on_choose_project,
+                "command": lambda: self.navigate_to("snippets", on_choose_project),
             },
             {
                 "label": "Zufall",
                 "icon": "🎲",
                 "description": "Zufalls-Ideen oder Beispiele erzeugen.",
-                "command": on_health_check,
+                "command": lambda: self.navigate_to("health", on_health_check),
             },
             {
                 "label": "To-dos",
                 "icon": "✅",
                 "description": "Aufgaben sichtbar machen und abhaken.",
-                "command": lambda: self.refresh_todos(),
+                "command": lambda: self.navigate_to("todos", lambda: self.refresh_todos()),
             },
             {
                 "label": "Editor",
                 "icon": "✏️",
                 "description": "Texte bearbeiten, speichern, prüfen.",
-                "command": on_start,
+                "command": lambda: self.navigate_to("notes", on_start),
             },
             {
                 "label": "Sichern/Export",
                 "icon": "💾",
                 "description": "Backup oder Export starten.",
-                "command": on_export_notes,
+                "command": lambda: self.navigate_to("backup", on_export_notes),
             },
             {
                 "label": "Papierkorb",
                 "icon": "🗑️",
                 "description": "Aufräumen und löschen nach Kontrolle.",
-                "command": on_toggle_sidebar,
+                "command": lambda: self.navigate_to("sidebar", on_toggle_sidebar),
             },
         ]
         self._build_navigation_panel(nav_column, nav_items)
@@ -964,32 +1004,32 @@ class DashboardLayout:
             (
                 "Genreverwaltung",
                 "Romane, Serien oder Settings anlegen und speichern.",
-                on_open_genres_tool,
+                lambda: self.navigate_to("genres", on_open_genres_tool),
             ),
             (
                 "Archiv",
                 "Schnellzugriff auf Projekte, Backups und gespeicherte Dateien.",
-                on_choose_project,
+                lambda: self.navigate_to("snippets", on_choose_project),
             ),
             (
                 "Dashboard",
                 "Übersicht anzeigen und Status aktualisieren.",
-                on_show_index,
+                lambda: self.navigate_to("overview", on_show_index),
             ),
             (
                 "Zufall",
                 "Zufallstools oder Gesundheitscheck starten.",
-                on_health_check,
+                lambda: self.navigate_to("health", on_health_check),
             ),
             (
                 "Vorlagen",
                 "Generatoren und Textmuster öffnen.",
-                on_choose_project,
+                lambda: self.navigate_to("snippets", on_choose_project),
             ),
             (
                 "Text-Templates",
                 "Snippet-Bibliothek einblenden und nutzen.",
-                lambda: self._toggle_details(True, focus="snippets"),
+                lambda: self.navigate_to("snippets"),
             ),
             (
                 "Debug-Log",
@@ -999,12 +1039,12 @@ class DashboardLayout:
             (
                 "Notizen",
                 "Editor öffnen, Änderungen speichern und prüfen.",
-                lambda: self._toggle_details(True, focus="notes"),
+                lambda: self.navigate_to("notes"),
             ),
             (
                 "Import / Export",
                 "Daten sichern oder laden – sofort validiert.",
-                on_export_notes,
+                lambda: self.navigate_to("backup", on_export_notes),
             ),
         ]
         self.tile_cards = self._build_tile_board(workspace, card_actions)
@@ -1090,6 +1130,9 @@ class DashboardLayout:
                     status_color_provider=self.state.rotate_status_colors,
                     theme_manager=self.theme_manager,
                     style_name="Card.TLabelframe",
+                    on_request_maximize=self.maximize_workspace,
+                    on_request_restore=self.restore_workspace_sizes,
+                    on_toggle_enabled=self._mark_workspace_enabled,
                 )
                 color_band = tk.Frame(
                     pane, height=8, background=color_primary, highlightthickness=0
@@ -1176,17 +1219,134 @@ class DashboardLayout:
         self.status_var.set(message)
         self.status_indicator.configure(background=color)
 
+    def navigate_to(self, target: str, action: Callable[[], None] | None = None) -> None:
+        """Open the matching module pane and execute the requested action."""
+
+        destinations: dict[str, Callable[[], None]] = {
+            "overview": lambda: self._toggle_details(False),
+            "notes": lambda: self._toggle_details(True, focus="notes"),
+            "todos": lambda: self._toggle_details(True, focus="todos"),
+            "snippets": lambda: self._toggle_details(True, focus="snippets"),
+            "genres": lambda: self._toggle_details(True),
+            "backup": lambda: self._toggle_details(True, focus="notes"),
+            "sidebar": lambda: self.sidebar.toggle() if self.sidebar else None,
+            "health": lambda: None,
+        }
+
+        if target in destinations:
+            destinations[target]()
+        if action:
+            action()
+        self.logging_manager.log_system(f"Navigation: {target} geöffnet")
+        self._update_stats_panel()
+
     def refresh_todos(self) -> None:
         if self.todo_panel:
             self.todo_panel.refresh()
+        self._update_stats_panel()
 
     def refresh_genres(self) -> None:
         if self.genre_panel:
             self.genre_panel.refresh()
+        self._update_stats_panel()
 
     def refresh_snippets(self) -> None:
         if self.snippet_panel:
             self.snippet_panel.refresh()
+        self._update_stats_panel()
+
+    def maximize_workspace(self, pane: WorkspacePane) -> None:
+        """Give a single pane maximal space by raising weights."""
+
+        if not self.pane_rows or not self.pane_grid:
+            return
+        for row in self.pane_rows:
+            row_weight = 5 if pane.master is row else 0
+            self.pane_grid.paneconfig(row, weight=row_weight or 1)
+            for name in row.panes():
+                widget = self.root.nametowidget(name)
+                row.paneconfig(widget, weight=5 if widget is pane else 1)
+        pane.status_var.set("Pane maximiert – Pfeil zum Rücksetzen nutzen.")
+        self.logging_manager.log_system("Arbeitsbereich maximiert für Fokus")
+
+    def restore_workspace_sizes(self) -> None:
+        """Reset pane weights so all modules stay flexible."""
+
+        if not self.pane_rows or not self.pane_grid:
+            return
+        for row in self.pane_rows:
+            self.pane_grid.paneconfig(row, weight=1)
+            for name in row.panes():
+                widget = self.root.nametowidget(name)
+                row.paneconfig(widget, weight=1)
+        self.logging_manager.log_system("Arbeitsbereiche auf Standardgröße zurückgesetzt")
+
+    def _mark_workspace_enabled(self, pane: WorkspacePane, enabled: bool) -> None:
+        """Update status colours when a workspace is disabled/enabled."""
+
+        if pane.status_color_provider and pane.status_label:
+            fg, bg = pane.status_color_provider(enabled)
+            pane.status_label.configure(foreground=fg, background=bg)
+        note = "aktiv" if enabled else "deaktiviert"
+        self.logging_manager.log_system(f"Arbeitsbereich {note}")
+
+    def _build_stats_panel(self, parent: ttk.LabelFrame) -> None:
+        stats_frame = ttk.LabelFrame(
+            parent,
+            text="Schnellstatistik (Live)",
+            padding=8,
+            style="Note.TLabelframe",
+            labelanchor="n",
+        )
+        stats_frame.grid(row=9, column=0, sticky="ew", pady=(8, 0))
+        stats_frame.columnconfigure(0, weight=1)
+
+        labels = {
+            "todos": "To-dos aktiv",
+            "genres": "Genre-Profile",
+            "snippets": "Snippets",
+            "backups": "Backups",
+        }
+        for row, (key, title) in enumerate(labels.items()):
+            label = tk.Label(
+                stats_frame,
+                text=title,
+                anchor="w",
+                padx=8,
+                pady=4,
+                relief=tk.FLAT,
+                background="#0f172a",
+                foreground="#e2e8f0",
+            )
+            label.grid(row=row, column=0, sticky="ew", pady=1)
+            self._stats_labels[key] = label
+
+        self._update_stats_panel()
+
+    def _update_stats_panel(self) -> None:
+        if not self._stats_labels:
+            return
+        metrics = self._collect_metrics()
+        for key, label in self._stats_labels.items():
+            value = metrics.get(key, 0)
+            ok = value > 0
+            label.configure(
+                text=f"{label.cget('text').split('(')[0].strip()}: {value}",
+                background="#166534" if ok else "#991b1b",
+                foreground="#ffffff",
+            )
+
+    def _collect_metrics(self) -> dict[str, int]:
+        todo_count = len(self._todo_provider()) if self._todo_provider else 0
+        genre_count = len(self._genre_summary_provider()) if self._genre_summary_provider else 0
+        snippet_count = len(self._snippet_store.list_snippets()) if self._snippet_store else 0
+        backup_count = len(list(self.state.backups_dir.glob("backup-*"))) if self.state else 0
+        return {
+            "todos": todo_count,
+            "genres": genre_count,
+            "snippets": snippet_count,
+            "backups": backup_count,
+        }
 
     def rotate_workspace_rows(self) -> None:
         """Allow the user to reorder workspace rows for flexible layouts."""
@@ -1419,5 +1579,7 @@ class DashboardLayout:
             wraplength=220,
             justify=tk.LEFT,
         ).grid(row=8, column=0, sticky="w")
+
+        self._build_stats_panel(settings)
 
         return settings
