@@ -1,6 +1,8 @@
 """Automated self-check and self-repair routines."""
 from __future__ import annotations
 
+import datetime
+import json
 import compileall
 import pathlib
 import subprocess
@@ -54,6 +56,11 @@ class SelfCheck:
             self.ensure_required_paths()
             return f"Fehlende Pfade repariert: {', '.join(missing)}"
         return "Alle Pflichtpfade verfügbar"
+
+    def manifest_version_stamp(self) -> str:
+        """Return a time-based version stamp for manifest updates."""
+
+        return datetime.datetime.now().strftime("%Y.%m.%d-%H%M")
 
     def run_code_format_check(self) -> bool:
         """Run a syntax-only compile check for the code base."""
@@ -220,16 +227,37 @@ class SelfCheck:
         if not self.manifest_path:
             return "übersprungen", "Kein Manifestpfad konfiguriert"
 
+        content = ""
         try:
             content = self.manifest_path.read_text(encoding="utf-8")
             if content.strip():
-                return "vorhanden", "Manifest geprüft"
+                versions = self._extract_manifest_versions(json.loads(content))
+                return "vorhanden", f"Manifest geprüft ({versions})"
         except FileNotFoundError:
+            content = ""
+        except (json.JSONDecodeError, ValueError):
             pass
+
         manifest = default_structure_manifest()
+        stamp = self.manifest_version_stamp()
+        manifest.version = stamp
+        manifest.layout_manifest.version = stamp
         writer = ManifestWriter(self.manifest_path)
         writer.write(manifest)
-        return "erstellt", "Manifest neu erstellt"
+        return "erstellt", f"Manifest neu erstellt (Version {stamp})"
+
+    def read_manifest_versions(self) -> str:
+        """Return human-friendly manifest versions or a fallback text."""
+
+        if not self.manifest_path or not self.manifest_path.exists():
+            return "Manifest fehlt – wird beim Start erzeugt"
+        try:
+            content = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+            return self._extract_manifest_versions(content)
+        except (json.JSONDecodeError, ValueError):
+            return "Manifest unlesbar – Autoreparatur aktiv"
+        except OSError:
+            return "Manifest nicht lesbar"
 
     def human_summary(self, status: dict[str, str]) -> list[str]:
         """Translate raw status values into laienfreundliche Sätze."""
@@ -271,3 +299,16 @@ class SelfCheck:
             detail = detail or "Bitte Fehlermeldung aus pip check prüfen"
         detail_text = f" – {detail}" if detail else ""
         return f"{severity}: {readable}{detail_text}"
+
+    def _extract_manifest_versions(self, manifest_data: dict) -> str:
+        """Return a combined version string for structure and layout sections."""
+
+        if not isinstance(manifest_data, dict):
+            raise ValueError("Manifestdaten fehlen oder sind ungültig")
+        structure = manifest_data.get("structure_manifest", {})
+        layout = manifest_data.get("layout_manifest", {})
+        structure_version = structure.get("version", "unbekannt")
+        layout_version = layout.get("version", "unbekannt")
+        if not structure_version or not layout_version:
+            raise ValueError("Manifest-Versionen fehlen – Neuaufbau nötig")
+        return f"Struktur v{structure_version}, Layout v{layout_version}"

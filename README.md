@@ -62,5 +62,11 @@ python -m unittest discover
 - Log-Bereich zeigt alle Schritte klar und transparent, ideal zum Debuggen.
 - Tipp: Wenn etwas hakt, einfach `python main.py` erneut starten – die Startroutine repariert Ordner,
   installiert fehlende Pakete und schreibt das Manifest neu.
+- Schnellbefehle (einfach nach Tippfehler kopieren und einfügen):
+  - `python main.py` – startet die Oberfläche, richtet fehlende Ordner/Manifest automatisch.
+  - `python -m unittest discover` – führt die kurzen Selbsttests aus (Stoppt automatisch bei Timeout).
+  - `python -m pytest -q tests` – ausführlichere Qualitätssuite (falls `pytest` installiert ist).
+  - `python -m pip check` – prüft Abhängigkeiten, meldet Konflikte im Klartext.
+  - `python -m black --check mod_tool` / `python -m ruff check mod_tool` – optionale Format-/Stilkontrolle.
 
 Weitere Details siehe `docs/DEVELOPER_GUIDE.md`.

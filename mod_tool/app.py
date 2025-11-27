@@ -183,6 +183,10 @@ class ControlCenterApp:
             self._log_event("Selbstprüfung", f"Pfad- & Syntaxprüfung: {repairs}")
             for line in friendly_lines:
                 self._log_event("Kurzinfo", f"Kurzfassung: {line}")
+            manifest_info = repairs.get("manifest_info") or self._self_check.read_manifest_versions()
+            if self._layout.header_controls:
+                self._layout.header_controls.set_manifest_status(manifest_info)
+            self._log_event("Manifest", manifest_info)
             archive_path = self._genre_archive.ensure_archive()
             todo_path = self._todo_manager.ensure_store()
             snippet_path = self._snippet_store.ensure_store()
@@ -535,11 +539,17 @@ class ControlCenterApp:
 
         layout_manifest = default_layout_manifest(self._theme_manager.theme_names)
         layout_manifest.sections = self._layout.describe_sections()
+        stamp = self._self_check.manifest_version_stamp()
+        layout_manifest.version = stamp
         manifest = default_structure_manifest(self._theme_manager.theme_names)
+        manifest.version = stamp
         manifest.layout_manifest = layout_manifest
         writer = ManifestWriter(self._manifest_path)
         manifest_path = writer.write(manifest)
-        self._logging_manager.log_system(f"Manifest aktualisiert: {manifest_path}")
+        message = f"Manifest aktualisiert: {manifest_path} (Version {stamp})"
+        self._logging_manager.log_system(message)
+        if self._layout.header_controls:
+            self._layout.header_controls.set_manifest_status(f"Manifest aktiv: {layout_manifest.version}")
 
     def _log_guidance_notes(self) -> None:
         """Spielt laienfreundliche Hinweise ins Log und Statusfeld ein."""
