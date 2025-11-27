@@ -85,3 +85,7 @@ Fortschritt: 100% (4/4 neue Aufgaben umgesetzt)
 - [x] Arbeitsbereiche lassen sich per Button maximieren, minimieren oder deaktivieren.
 - [x] Footer zeigt die letzten 10 Logeinträge in Echtzeit farbcodiert an.
 - [x] Dashboard enthält live aktualisierte Statistiken und Einstellungs-Hinweise.
+Fortschritt: 100% (3/3 neue Aufgaben umgesetzt)
+- [x] Globale Drag&Drop-Steuerung für alle Textfelder mit Log-Feedback aktiviert.
+- [x] UI-Hilfetexte zu Drag&Drop, Barrierefreiheit und Undo/Redo ergänzt.
+- [x] Automatische Tests für den Drag&Drop-Manager hinzugefügt.

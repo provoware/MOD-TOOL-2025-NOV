@@ -6,6 +6,7 @@ from pathlib import Path
 from tkinter import ttk
 from typing import Callable, Iterable, Sequence
 
+from .dragdrop import DragDropManager
 from .todo import TodoItem
 
 from .dashboard_state import DashboardState
@@ -158,6 +159,15 @@ class HeaderControls:
         ttk.Label(self.frame, textvariable=self.progress_label).grid(
             row=4, column=4, sticky="w", padx=(8, 0)
         )
+
+        ttk.Label(
+            self.frame,
+            text=(
+                "Neu: Markiere Text und ziehe ihn in jedes Feld – Drop überall erlaubt."
+                " Escape bricht ab."
+            ),
+            style="Helper.TLabel",
+        ).grid(row=5, column=0, columnspan=5, sticky="w", pady=(6, 0))
 
         self.frame.columnconfigure(4, weight=1)
         self.frame.rowconfigure(5, weight=0)
@@ -1207,6 +1217,16 @@ class DashboardLayout:
         )
         self.status_indicator.pack(fill=tk.X, pady=(6, 0))
 
+        ttk.Label(
+            info_block,
+            text=(
+                "Drag & Drop: Inhalte lassen sich zwischen allen Textfeldern verschieben."
+                " Zwischenablage und Undo bleiben erhalten."
+            ),
+            wraplength=360,
+            style="Helper.TLabel",
+        ).pack(anchor="w", pady=(6, 0))
+
     def set_status_light(self, level: str, message: str) -> None:
         """Update the footer status light with warning/error levels."""
 
@@ -1289,6 +1309,22 @@ class DashboardLayout:
             pane.status_label.configure(foreground=fg, background=bg)
         note = "aktiv" if enabled else "deaktiviert"
         self.logging_manager.log_system(f"Arbeitsbereich {note}")
+
+    def enable_drag_and_drop(self, manager: DragDropManager) -> None:
+        """Wire drag & drop to all editable text fields with validation."""
+
+        if not isinstance(manager, DragDropManager):
+            raise ValueError("Ungültiger DragDropManager übergeben")
+
+        if self.note_panel:
+            manager.enable_for_text(self.note_panel.text, "Notizen")
+
+        for idx, pane in enumerate(self._workspace_panes, start=1):
+            manager.enable_for_text(pane.text, f"Arbeitsbereich {idx}")
+
+        if self.snippet_panel:
+            manager.enable_for_text(self.snippet_panel.new_content, "Snippet-Erfassung")
+            manager.enable_for_text(self.snippet_panel.detail_content, "Snippet-Detail")
 
     def _build_stats_panel(self, parent: ttk.LabelFrame) -> None:
         stats_frame = ttk.LabelFrame(

@@ -18,6 +18,7 @@ from tkinter import filedialog, messagebox, ttk
 from .bootstrap import Bootstrapper
 from .dashboard_state import DashboardState
 from .diagnostics import guarded_action
+from .dragdrop import DragDropManager
 from .genre_archive import GenreArchive
 from .genres_tool import GenresToolStore, GenresToolWindow
 from .guidance import StartupGuide
@@ -51,6 +52,7 @@ class ControlCenterApp:
         self._root = self._init_root()
         self._theme_manager = ThemeManager(self._root)
         self._logging_manager = LoggingManager(self._root)
+        self._dragdrop = DragDropManager(self._logging_manager.log_system)
         self._plugin_manager = PluginManager("plugins")
         self._manifest_path = pathlib.Path(__file__).resolve().parent.parent / "manifest.json"
         self._self_check = SelfCheck(
@@ -152,6 +154,7 @@ class ControlCenterApp:
             "Bei Fehlern Optionen im Menü nutzen: Backup, Import/Export, Undo/Redo.",
             "Themes wechseln, wenn Blendung auftritt – alle Varianten sind kontrastgeprüft.",
             "Genres-Tool nutzen: Profile anlegen, Zufall drücken, Ergebnis wird kopiert (Zufallsauswahl).",
+            "Drag & Drop: markiere Text und ziehe ihn in ein anderes Feld – alles bleibt validiert und rückgängig.",
         ]
 
     def _run_startup_sequence(self, source: str = "Autostart") -> None:
@@ -589,6 +592,7 @@ class ControlCenterApp:
         )
         self._init_menu()
         self._attach_validated_inputs()
+        self._layout.enable_drag_and_drop(self._dragdrop)
         self._zoom_manager.bind_shortcuts(status_callback=self._set_status)
         self._theme_manager.apply_theme("Aurora")
         self._refresh_accessibility_status()
