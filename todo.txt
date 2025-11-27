@@ -80,3 +80,8 @@ Fortschritt: 0% (0/6 neue Aufgaben geplant)
 - [ ] Drag-Handles der Paned-Fenster auf Tastaturbedienung testen und Shortcut-Legende dokumentieren.
 - [ ] Querverbindungs-Validator erweitern: Genre-Profil-Verlinkungen in To-dos/Snippets automatisch markieren.
 - [ ] Invertierten Textmodus im Dashboard mit Kurzhilfe (Tooltip + Statushinweis) ergänzen und automatisch rücksetzen, wenn das Feld verliert.
+Fortschritt: 100% (4/4 neue Aufgaben umgesetzt)
+- [x] Navigation und Kacheln führen wieder zuverlässig in die jeweiligen Module.
+- [x] Arbeitsbereiche lassen sich per Button maximieren, minimieren oder deaktivieren.
+- [x] Footer zeigt die letzten 10 Logeinträge in Echtzeit farbcodiert an.
+- [x] Dashboard enthält live aktualisierte Statistiken und Einstellungs-Hinweise.
