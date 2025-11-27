@@ -75,6 +75,7 @@ Fortschritt: 0% (0/6 neue Aufgaben geplant)
 - [x] Start/Monitor entkoppeln: Hintergrund-Monitor stoppbar machen und Startroutine in einen eigenen Service auslagern.
 - [x] Plugin-Schema prüfen: Erwartete Hooks validieren, ungültige Plugins blocken und Status klar loggen.
 - [x] Manifest versionieren und im UI anzeigen, damit Nutzer den Stand der Layout-/Strukturdatei sehen.
+- [ ] Manifest versionieren und im UI anzeigen, damit Nutzer den Stand der Layout-/Strukturdatei sehen.
 - [x] Log-Level-Umschalter ergänzen (Info/Warnung/Fehler) und Debug-Ansicht filtern.
 - [ ] Headless UI-Screenshot-Test in die Test-Suite aufnehmen, um Layoutänderungen früh zu erkennen.
 - [ ] Drag-Handles der Paned-Fenster auf Tastaturbedienung testen und Shortcut-Legende dokumentieren.
