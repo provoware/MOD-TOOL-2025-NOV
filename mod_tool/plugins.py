@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import logging
 import pathlib
 from dataclasses import dataclass, field
@@ -64,10 +65,14 @@ class PluginManager:
         module = importlib.util.module_from_spec(spec)
         try:
             spec.loader.exec_module(module)
+            valid, plugin_name, reason = self._validate_plugin_module(module, plugin_file)
+            if not valid:
+                self.load_report.append(f"{plugin_file.name}: blockiert – {reason}")
+                return
             if hasattr(module, "on_load"):
                 module.on_load()
-            self.loaded_plugins.append(plugin_file.stem)
-            self.load_report.append(f"{plugin_file.name}: geladen")
+            self.loaded_plugins.append(plugin_name)
+            self.load_report.append(f"{plugin_file.name}: geladen ({plugin_name})")
         except Exception as exc:  # pragma: no cover - defensive
             LOG.exception("Plugin %s konnte nicht geladen werden: %s", plugin_file.name, exc)
             if plugin_file.stem == "broken" and isinstance(exc, RuntimeError):
@@ -76,3 +81,34 @@ class PluginManager:
                 )
             else:
                 self.load_report.append(f"{plugin_file.name}: Fehler {exc}")
+
+    def _validate_plugin_module(self, module: object, plugin_file: pathlib.Path) -> tuple[bool, str, str]:
+        """Ensure plugin metadata and hooks follow a minimal schema."""
+
+        meta = getattr(module, "PLUGIN_META", None)
+        plugin_name = plugin_file.stem
+        if meta is not None:
+            if not isinstance(meta, dict):
+                return False, plugin_name, "PLUGIN_META muss ein Wörterbuch sein"
+            if "name" in meta:
+                if not isinstance(meta["name"], str) or not meta["name"].strip():
+                    return False, plugin_name, "PLUGIN_META.name muss Text enthalten"
+                plugin_name = meta["name"].strip()
+            if "version" in meta and not isinstance(meta["version"], str):
+                return False, plugin_name, "PLUGIN_META.version muss Text sein"
+
+        on_load = getattr(module, "on_load", None)
+        if on_load is not None:
+            if not callable(on_load):
+                return False, plugin_name, "on_load muss aufrufbar sein"
+            signature = inspect.signature(on_load)
+            required = [
+                param
+                for param in signature.parameters.values()
+                if param.default is inspect._empty
+                and param.kind in (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD)
+            ]
+            if required:
+                return False, plugin_name, "on_load darf keine Pflichtargumente haben"
+
+        return True, plugin_name, "valide"

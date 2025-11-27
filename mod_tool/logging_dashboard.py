@@ -8,6 +8,8 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Callable
 
+from .events import EventTrace
+
 
 class QueueHandler(logging.Handler):
     """A logging handler that sends records to a queue and observers."""
@@ -130,7 +132,7 @@ class RecentLogPanel(ttk.Frame):
 class LoggingManager:
     """Coordinates application logging and dashboard output."""
 
-    def __init__(self, root: tk.Tk) -> None:
+    def __init__(self, root: tk.Tk, event_trace: EventTrace | None = None) -> None:
         self.root = root
         self.log_queue: queue.Queue[logging.LogRecord] = queue.Queue()
         self.panel: LoggingPanel | None = None
@@ -139,6 +141,7 @@ class LoggingManager:
         self.handler = QueueHandler(self.log_queue, on_record=self._remember_record)
         self._debug_enabled = False
         self._level_threshold = logging.INFO
+        self.events = event_trace or EventTrace()
 
     def attach(self, parent: tk.Widget) -> None:
         container = ttk.Frame(parent)
@@ -195,8 +198,15 @@ class LoggingManager:
         target = logging.DEBUG if self._debug_enabled else logging.INFO
         logging.getLogger().setLevel(target)
 
-    def log_system(self, message: str) -> None:
-        logging.getLogger(__name__).info(message)
+    def log_system(self, message: str, *, severity: str = "info", event: str | None = None) -> None:
+        level = {
+            "debug": logging.DEBUG,
+            "warn": logging.WARNING,
+            "warning": logging.WARNING,
+            "error": logging.ERROR,
+        }.get(severity, logging.INFO)
+        logging.getLogger(__name__).log(level, message)
+        self.events.record(event or "System", message, severity=severity if severity != "warning" else "warn")
 
     def _remember_record(self, record: logging.LogRecord) -> None:
         self._recent_records.append(record)

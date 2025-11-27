@@ -1,5 +1,6 @@
 import logging
 import logging
+import logging
 import tkinter as tk
 import unittest
 
