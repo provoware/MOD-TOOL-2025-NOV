@@ -11,7 +11,6 @@ import logging
 import pathlib
 import sys
 import threading
-import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -19,6 +18,7 @@ from .bootstrap import Bootstrapper
 from .dashboard_state import DashboardState
 from .diagnostics import guarded_action
 from .dragdrop import DragDropManager
+from .events import EventTrace, render_event_digest
 from .genre_archive import GenreArchive
 from .genres_tool import GenresToolStore, GenresToolWindow
 from .guidance import StartupGuide
@@ -29,6 +29,7 @@ from .manifest import (
     default_structure_manifest,
 )
 from .logging_dashboard import LoggingManager
+from .monitor import HealthMonitor
 from .plugins import PluginManager
 from .self_check import SelfCheck
 from .snippet_library import SnippetStore
@@ -50,8 +51,9 @@ class ControlCenterApp:
 
     def __init__(self, startup_status: dict[str, str] | None = None) -> None:
         self._root = self._init_root()
+        self._events = EventTrace()
         self._theme_manager = ThemeManager(self._root)
-        self._logging_manager = LoggingManager(self._root)
+        self._logging_manager = LoggingManager(self._root, self._events)
         self._dragdrop = DragDropManager(self._logging_manager.log_system)
         self._plugin_manager = PluginManager("plugins")
         self._manifest_path = pathlib.Path(__file__).resolve().parent.parent / "manifest.json"
@@ -63,7 +65,7 @@ class ControlCenterApp:
         self._startup_guide = StartupGuide(str(self._self_check.base_path / ".venv"))
         self._startup_status = startup_status or {}
         self._debug_mode = tk.BooleanVar(value=False)
-        self._monitor_started = False
+        self._monitor = HealthMonitor(self._self_check, self._log_monitor_status)
         self._zoom_manager = ZoomManager(self._root, self._theme_manager.fonts)
         self._autosave_job: int | None = None
         self._hint_job: int | None = None
@@ -157,6 +159,17 @@ class ControlCenterApp:
             "Drag & Drop: markiere Text und ziehe ihn in ein anderes Feld – alles bleibt validiert und rückgängig.",
         ]
 
+    def _log_event(self, name: str, message: str, *, severity: str = "info") -> None:
+        self._logging_manager.log_system(message, severity=severity, event=name)
+        if self._layout.header_controls:
+            digest = render_event_digest(self._events.snapshot()[-3:])
+            self._layout.header_controls.stat_var.set(f"Ereignisse: {digest}")
+
+    def _log_monitor_status(self, message: str) -> None:
+        self._logging_manager.log_system(message, severity="info", event="Monitor")
+        if self._layout.header_controls:
+            self._layout.header_controls.status_var.set(message)
+
     def _run_startup_sequence(self, source: str = "Autostart") -> None:
         """Perform automated self-checks and log the outcome."""
 
@@ -166,28 +179,33 @@ class ControlCenterApp:
             repairs = self._self_check.full_check()
             friendly_lines = self._self_check.human_summary(repairs)
             for path, status in structure.items():
-                self._logging_manager.log_system(f"Projektpfad geprüft: {path} -> {status}")
-            self._logging_manager.log_system(f"Pfad- & Syntaxprüfung: {repairs}")
+                self._log_event("Pfad-Check", f"Projektpfad geprüft: {path} -> {status}", severity=self._status_to_severity(status))
+            self._log_event("Selbstprüfung", f"Pfad- & Syntaxprüfung: {repairs}")
             for line in friendly_lines:
-                self._logging_manager.log_system(f"Kurzfassung: {line}")
+                self._log_event("Kurzinfo", f"Kurzfassung: {line}")
+            manifest_info = repairs.get("manifest_info") or self._self_check.read_manifest_versions()
+            if self._layout.header_controls:
+                self._layout.header_controls.set_manifest_status(manifest_info)
+            self._log_event("Manifest", manifest_info)
             archive_path = self._genre_archive.ensure_archive()
             todo_path = self._todo_manager.ensure_store()
             snippet_path = self._snippet_store.ensure_store()
             genre_tool_path = self._genres_store.ensure_store()
-            self._logging_manager.log_system(f"Genre-Archiv bereitgestellt: {archive_path}")
-            self._logging_manager.log_system(f"To-do-Ablage geprüft: {todo_path}")
-            self._logging_manager.log_system(f"Snippet-Archiv bereitgestellt: {snippet_path}")
-            self._logging_manager.log_system(f"Genres-Tool-Daten geprüft: {genre_tool_path}")
+            self._log_event("Archive", f"Genre-Archiv bereitgestellt: {archive_path}")
+            self._log_event("To-dos", f"To-do-Ablage geprüft: {todo_path}")
+            self._log_event("Snippets", f"Snippet-Archiv bereitgestellt: {snippet_path}")
+            self._log_event("Genres", f"Genres-Tool-Daten geprüft: {genre_tool_path}")
             loaded = self._plugin_manager.load_plugins()
-            self._logging_manager.log_system(
+            plugin_message = (
                 f"Plugins geladen ({len(loaded)}): {', '.join(loaded) if loaded else 'keine Module gefunden'}"
             )
+            self._log_event("Plugins", plugin_message, severity="warn" if not loaded else "info")
             if self._plugin_manager.load_report:
-                self._logging_manager.log_system(
-                    "Plugin-Report: " + " | ".join(self._plugin_manager.load_report)
+                self._log_event(
+                    "Plugin-Report", "Plugin-Report: " + " | ".join(self._plugin_manager.load_report)
                 )
             for key, value in self._startup_status.items():
-                self._logging_manager.log_system(f"Startroutine {key}: {value}")
+                self._log_event("Startroutine", f"Startroutine {key}: {value}")
             if self._startup_status:
                 status_line = ", ".join(f"{k}={v}" for k, v in self._startup_status.items())
                 self._layout.header_controls.status_var.set(f"{source}: {status_line}")
@@ -198,7 +216,7 @@ class ControlCenterApp:
             )
             tests_detail = repairs.get("tests_info")
             if tests_detail:
-                self._logging_manager.log_system(f"Testdetails: {tests_detail}")
+                self._log_event("Tests", f"Testdetails: {tests_detail}", severity=self._status_to_severity(tests_label))
             overall = repairs.get("gesamt", "warnung")
             status_text = {
                 "ok": "Alles ok – Start frei",
@@ -216,10 +234,9 @@ class ControlCenterApp:
             _diagnose()
         except Exception as exc:  # pragma: no cover - defensive UI guard
             self._layout.header_controls.status_var.set(f"Fehler in Startroutine: {exc}")
-
-        if not self._monitor_started:
-            threading.Thread(target=self._background_monitor, daemon=True).start()
-            self._monitor_started = True
+        started = self._monitor.start()
+        if started:
+            self._log_event("Monitor", "Hintergrund-Monitor gestartet")
 
     def _toggle_sidebar(self) -> None:
         if self._layout.sidebar:
@@ -396,13 +413,9 @@ class ControlCenterApp:
             self._root.after_cancel(self._autosave_job)
         if self._hint_job:
             self._root.after_cancel(self._hint_job)
+        if self._monitor.stop():
+            self._log_event("Monitor", "Hintergrund-Monitor gestoppt")
         self._root.destroy()
-
-    def _background_monitor(self) -> None:
-        while True:
-            time.sleep(5)
-            health = self._self_check.quick_health_report()
-            self._logging_manager.log_system(f"Selbstprüfung: {health}")
 
     def _on_manual_start(self) -> None:
         threading.Thread(
@@ -415,7 +428,7 @@ class ControlCenterApp:
         @guarded_action("Manuelle Schnellprüfung", LOG)
         def _check() -> None:
             status = self._self_check.quick_health_report()
-            self._logging_manager.log_system(f"Schnellcheck: {status}")
+            self._log_event("Schnellcheck", f"Schnellcheck: {status}", severity=self._status_to_severity(status))
             self._layout.header_controls.status_var.set(status)
 
         threading.Thread(target=_check, daemon=True).start()
@@ -526,11 +539,17 @@ class ControlCenterApp:
 
         layout_manifest = default_layout_manifest(self._theme_manager.theme_names)
         layout_manifest.sections = self._layout.describe_sections()
+        stamp = self._self_check.manifest_version_stamp()
+        layout_manifest.version = stamp
         manifest = default_structure_manifest(self._theme_manager.theme_names)
+        manifest.version = stamp
         manifest.layout_manifest = layout_manifest
         writer = ManifestWriter(self._manifest_path)
         manifest_path = writer.write(manifest)
-        self._logging_manager.log_system(f"Manifest aktualisiert: {manifest_path}")
+        message = f"Manifest aktualisiert: {manifest_path} (Version {stamp})"
+        self._logging_manager.log_system(message)
+        if self._layout.header_controls:
+            self._layout.header_controls.set_manifest_status(f"Manifest aktiv: {layout_manifest.version}")
 
     def _log_guidance_notes(self) -> None:
         """Spielt laienfreundliche Hinweise ins Log und Statusfeld ein."""
@@ -550,6 +569,15 @@ class ControlCenterApp:
         self._layout.header_controls.set_accessibility_status(
             {"status": report.get("status", "warnung"), "details": report.get("details", "")}
         )
+
+    def _status_to_severity(self, value: str) -> str:
+        warn_states = {"warnung", "kompilierungswarnung", "abgebrochen", "teilweise", "übersprungen"}
+        error_states = {"fehlgeschlagen", "fehler"}
+        if value in error_states:
+            return "error"
+        if value in warn_states or (isinstance(value, str) and value.startswith("warn")):
+            return "warn"
+        return "info"
 
     def _calculate_progress(self, status: dict[str, str]) -> tuple[int, str]:
         ok_states = {"ok", "vorhanden", "automatisch erstellt", "übersprungen", "erstellt"}

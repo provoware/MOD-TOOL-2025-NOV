@@ -85,6 +85,32 @@ class SelfCheckTests(unittest.TestCase):
             self.assertEqual(status, "warnung")
             self.assertIn("Konflikt", info)
 
+    def test_manifest_versions_are_reported(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = pathlib.Path(tmp_dir)
+            manifest_path = base / "manifest.json"
+            manifest_path.write_text(
+                '{"structure_manifest": {"version": "2.0"}, "layout_manifest": {"version": "2.1"}}',
+                encoding="utf-8",
+            )
+            check = SelfCheck([base / "logs"], base_path=base, manifest_path=manifest_path)
+            status, info = check.ensure_manifest_file()
+            self.assertEqual(status, "vorhanden")
+            self.assertIn("Struktur v2.0", info)
+            human = check.read_manifest_versions()
+            self.assertIn("Layout v2.1", human)
+
+    def test_manifest_repair_rewrites_invalid_file(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = pathlib.Path(tmp_dir)
+            manifest_path = base / "manifest.json"
+            manifest_path.write_text("{defekt}", encoding="utf-8")
+            check = SelfCheck([base / "logs"], base_path=base, manifest_path=manifest_path)
+            status, info = check.ensure_manifest_file()
+            self.assertEqual(status, "erstellt")
+            self.assertIn("Version", info)
+            self.assertIn("Struktur v", check.read_manifest_versions())
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

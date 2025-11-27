@@ -56,6 +56,7 @@ class HeaderControls:
         self.debug_enabled = tk.BooleanVar(value=False)
         self.clock_var = tk.StringVar(value="Zeit wird geladen…")
         self.accessibility_var = tk.StringVar(value="Kontrast-Check lädt…")
+        self.manifest_var = tk.StringVar(value="Manifest-Version wird geprüft…")
         self.input_fields: list[ValidatedEntry] = []
 
     def build(self) -> None:
@@ -77,6 +78,9 @@ class HeaderControls:
         )
         ttk.Label(self.frame, textvariable=self.accessibility_var, style="Helper.TLabel").grid(
             row=6, column=0, sticky="w", pady=(2, 0)
+        )
+        ttk.Label(self.frame, textvariable=self.manifest_var, style="Helper.TLabel").grid(
+            row=7, column=0, sticky="w", pady=(2, 0)
         )
 
         ttk.Button(
@@ -170,7 +174,7 @@ class HeaderControls:
         ).grid(row=5, column=0, columnspan=5, sticky="w", pady=(6, 0))
 
         self.frame.columnconfigure(4, weight=1)
-        self.frame.rowconfigure(5, weight=0)
+        self.frame.rowconfigure(7, weight=0)
 
     def _on_theme_change(self, event: object) -> None:  # pragma: no cover - UI binding
         self.theme_manager.apply_theme(self.theme_choice.get())
@@ -204,6 +208,11 @@ class HeaderControls:
         detail = report.get("details", "Keine Details")
         prefix = "Kontrast ok" if status == "ok" else "Kontrast prüfen"
         self.accessibility_var.set(f"{prefix}: {detail}")
+
+    def set_manifest_status(self, message: str) -> None:
+        if not message.strip():
+            raise ValueError("Manifest-Status darf nicht leer sein")
+        self.manifest_var.set(message)
 
 
 class WorkspacePane(ttk.LabelFrame):
