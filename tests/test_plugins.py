@@ -39,6 +39,25 @@ loaded = True
             self.assertNotIn("broken", loaded)
             self.assertEqual(loaded, manager.loaded_plugins)
 
+    def test_invalid_schema_blocks_plugin(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_dir = pathlib.Path(tmp_dir)
+            bad_plugin = plugin_dir / "invalid.py"
+            bad_plugin.write_text(
+                """
+def on_load(required):
+    return required
+PLUGIN_META = {"name": "Bad", "version": 1}
+                """
+            )
+            manager = PluginManager(str(plugin_dir))
+            loaded = manager.load_plugins()
+
+            self.assertEqual([], loaded)
+            report = " | ".join(manager.load_report)
+            self.assertIn("invalid.py", report)
+            self.assertIn("blockiert", report)
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
