@@ -96,9 +96,7 @@ class Bootstrapper:
 
         assert self.venv_dir is not None
         assert self.requirements_file is not None
-        python_bin = self.venv_dir / "bin" / "python"
-        if os.name == "nt":  # pragma: no cover - Windows path
-            python_bin = self.venv_dir / "Scripts" / "python.exe"
+        python_bin = self._python_executable()
 
         if not python_bin.exists():
             self._feedback("Kein Python in der Umgebung gefunden – Installation übersprungen.")
@@ -128,11 +126,47 @@ class Bootstrapper:
         ]
         installed = self._run_command(cmd, "Abhängigkeiten installiert")
         if not installed:
-            return "fehler"
+            self._feedback(
+                "Installationskonflikt erkannt – starte automatische Reparatur (Neuinstallation)."
+            )
+            repaired_status, repaired_info = self.repair_dependencies(force_reinstall=True)
+            self._feedback(f"Konfliktlösung: {repaired_info}")
+            return repaired_status
 
         dep_status, dep_info = self.self_check.run_dependency_probe()
         self._feedback(f"Abhängigkeitsprüfung: {dep_info}")
-        return dep_status if dep_status != "ok" else "ok"
+        if dep_status != "ok":
+            self._feedback(
+                "Abhängigkeitswarnung erkannt – starte automatische Neuinstallation zur Konfliktbehebung."
+            )
+            repaired_status, repaired_info = self.repair_dependencies(force_reinstall=True)
+            self._feedback(f"Konfliktlösung: {repaired_info}")
+            return repaired_status
+        return "ok"
+
+    def repair_dependencies(self, *, force_reinstall: bool = False) -> tuple[str, str]:
+        """Attempt to heal dependency conflicts in a transparent way."""
+
+        assert self.requirements_file is not None
+        python_bin = self._python_executable()
+        if not python_bin.exists():
+            return "warnung", "Python in virtueller Umgebung fehlt – Reparatur übersprungen"
+        if not self.requirements_file.exists():
+            return "übersprungen", "Keine requirements.txt – nichts zu reparieren"
+
+        reinstall_cmd = [str(python_bin), "-m", "pip", "install", "--upgrade"]
+        if force_reinstall:
+            reinstall_cmd.append("--force-reinstall")
+        reinstall_cmd += ["-r", str(self.requirements_file)]
+        reinstall = self._run_command(
+            reinstall_cmd, "Abhängigkeiten wurden automatisch neu aufgebaut"
+        )
+        if not reinstall:
+            return "warnung", "Neuinstallation nicht erfolgreich – bitte Log prüfen"
+
+        dep_status, dep_info = self.self_check.run_dependency_probe()
+        final_status = dep_status if dep_status in {"ok", "warnung"} else "warnung"
+        return final_status, dep_info
 
     def self_check_report(self) -> str:
         """Run self-healing checks for folders and code format."""
@@ -165,6 +199,14 @@ class Bootstrapper:
         env = os.environ.copy()
         env["MOD_TOOL_BOOTSTRAPPED"] = "1"
         os.execv(venv_python, [str(venv_python), *sys.argv])
+
+    def _python_executable(self) -> pathlib.Path:
+        """Return the Python interpreter path inside the virtual environment."""
+
+        assert self.venv_dir is not None
+        if os.name == "nt":  # pragma: no cover - Windows path
+            return self.venv_dir / "Scripts" / "python.exe"
+        return self.venv_dir / "bin" / "python"
 
     def _run_command(self, cmd: list[str], success_message: str) -> bool:
         """Run a subprocess command and return success state."""

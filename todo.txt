@@ -90,3 +90,7 @@ Fortschritt: 100% (3/3 neue Aufgaben umgesetzt)
 - [x] Globale Drag&Drop-Steuerung für alle Textfelder mit Log-Feedback aktiviert.
 - [x] UI-Hilfetexte zu Drag&Drop, Barrierefreiheit und Undo/Redo ergänzt.
 - [x] Automatische Tests für den Drag&Drop-Manager hinzugefügt.
+Fortschritt: 100% (3/3 neue Aufgaben umgesetzt)
+- [x] Vollautonome Startroutine mit klarer Statusanzeige und automatischer Konfliktlösung ergänzt.
+- [x] Laienfreundliches Startprotokoll mit einfachen Begriffen und Definitions-Hinweisen eingebaut.
+- [x] Statusboard- und Autostart-Tests für Nachvollziehbarkeit und Codequalität ergänzt.

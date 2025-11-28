@@ -9,9 +9,24 @@ Jetzt mit "Klick & Start"-Routine, Debug/Logging-Umschalter und Schnellcheck-Sch
   Abhängigkeiten aus `requirements.txt`. Fortschritt wird im Terminal angezeigt.
 - Pflichtordner (`logs/`, `plugins/`, `config/`) werden repariert oder erstellt.
 - Ein Syntax-Check (`compileall`, prüft Quelltext) läuft vor dem GUI-Start.
+- Neu: Eine vollautomatische Startroutine mit Statusanzeige zeigt Schritt für
+  Schritt an, was gerade passiert (virtuelle Umgebung, Pakete, Selbstprüfung).
+  Konflikte in Abhängigkeiten werden automatisch behoben (`--force-reinstall`),
+  der Fortschritt wird laienfreundlich zusammengefasst.
 - Die Klick-&-Start-Schaltfläche im Header triggert alle Prüfungen erneut (inkl. Plugins & Tests)
   und protokolliert verständlich.
 - Hintergrundüberwachung liefert Live-Status im Logging-Panel.
+
+## Statusanzeige & Laienhinweise (einfache Sprache)
+- Jede Startroutine meldet eine kompakte Statusanzeige (Statusboard) mit
+  Klartext: "OK" oder "Warnung" plus kurzer Erklärung in Klammern
+  (z. B. "Abhängigkeiten: OK – alles neu installiert").
+- Begriffe werden direkt erklärt: virtuelle Umgebung = isolierter Arbeitsraum,
+  Pip-Check = Konfliktprüfer, Manifest = Fahrplan für Layout und Struktur.
+- Drei Farb-Themes mit geprüften Kontrasten stehen bereit (Aurora, Neon,
+  Invertiert); die Kontrastprüfung läuft beim Start und beim Theme-Wechsel.
+- Debug-/Logging-Modus lässt sich im Header umschalten, damit Fehler transparent
+  bleiben. Alle Schritte landen im Log (Protokollbereich) und sind rückverfolgbar.
 
 ## Manifest & Layout-Doku
 - Die aktuelle Struktur (Automationsschritte, Health-Checks) und das Layout (Header, vier Panels, Fußleiste)

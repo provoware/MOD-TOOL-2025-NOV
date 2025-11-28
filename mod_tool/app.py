@@ -33,6 +33,7 @@ from .monitor import HealthMonitor
 from .plugins import PluginManager
 from .self_check import SelfCheck
 from .snippet_library import SnippetStore
+from .startup import AutonomousStarter
 from .themes import ThemeManager
 from .todo import TodoManager
 from .tool_index import ToolIndex, ToolIndexView
@@ -647,8 +648,8 @@ def main(argv: list[str] | None = None) -> int:
     """CLI entry point for the control center with auto-bootstrap."""
 
     _ = argv or sys.argv[1:]
-    bootstrap = Bootstrapper()
-    startup_status = bootstrap.run()
+    starter = AutonomousStarter()
+    startup_status = starter.run()
     try:
         ControlCenterApp(startup_status=startup_status).run()
     except RuntimeError as exc:  # pragma: no cover - GUI failure
